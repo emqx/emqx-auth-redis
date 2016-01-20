@@ -44,7 +44,7 @@ check(#mqtt_client{username = Username}, Password, _State)
     {error, username_or_passwd_undefined};
 
 check(#mqtt_client{username = Username}, Password,
-        #state{auth_sql = AuthSql, hash_type = HashType}) ->
+      #state{auth_cmd = AuthCmd, hash_type = HashType}) ->
     case emqttd_redis_client:query(replvar(AuthCmd, Username)) of
         {ok, undefined} ->
             {error, not_found};
