@@ -54,8 +54,16 @@ check(#mqtt_client{username = Username}, Password,
             {error, Error}
     end.
 
-replvar(AuthCmd, Username) ->
-    re:replace(AuthCmd, "%u", Username, [global, {return, binary}]).
-
 description() -> "Authentication with Redis".
 
+check_pass(PassHash, Password, HashType) ->
+    case PassHash =:= hash(HashType, Password) of
+        true  -> ok;
+        false -> {error, password_error}
+    end.
+
+hash(Type, Password) ->
+    emqttd_auth_mod:passwd_hash(Type, Password).
+
+replvar(AuthCmd, Username) ->
+    re:replace(AuthCmd, "%u", Username, [global, {return, binary}]).
