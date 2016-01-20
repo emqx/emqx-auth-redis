@@ -88,7 +88,7 @@ match(Client, Topic, [Rule|Rules]) ->
 
 feed_var(#mqtt_client{client_id = ClientId, username = Username}, Rule) ->
     Vars = [{"%u", Username}, {"%c", ClientId}],
-    lists:foldl(fun({Var, Val}, Acc) -> feed_var(T, Var, Acc) end, Rule, Vars).
+    lists:foldl(fun({Var, Val}, Topic) -> feed_var(Topic, Var, Val) end, Rule, Vars).
 
 feed_var(Topic, Var, Val) ->
     re:replace(Topic, Var, Val, [global, {return, binary}]).
