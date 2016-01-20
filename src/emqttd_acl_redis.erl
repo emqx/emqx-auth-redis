@@ -93,3 +93,6 @@ feed_var(#mqtt_client{client_id = ClientId, username = Username}, Rule) ->
 feed_var(Topic, Var, Val) ->
     re:replace(Topic, Var, Val, [global, {return, binary}]).
 
+reload_acl(_State) -> ok.
+
+description() -> "Redis ACL Module".
