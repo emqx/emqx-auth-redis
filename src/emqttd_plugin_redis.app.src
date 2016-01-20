@@ -1,0 +1,14 @@
+{application, emqttd_plugin_redis,
+ [
+  {description, "emqttd Redis Plugin"},
+  {vsn, "0.15"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  eredis,
+                  ecpool
+                 ]},
+  {mod, { emqttd_plugin_redis_app, []}},
+  {env, []}
+ ]}.
