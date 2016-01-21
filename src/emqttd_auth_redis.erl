@@ -23,7 +23,6 @@
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
-
 -module(emqttd_auth_redis).
 
 -behaviour(emqttd_auth_mod).
@@ -45,7 +44,7 @@ check(#mqtt_client{username = Username}, Password, _State)
 
 check(#mqtt_client{username = Username}, Password,
       #state{auth_cmd = AuthCmd, hash_type = HashType}) ->
-    case emqttd_redis_client:query(replvar(AuthCmd, Username)) of
+    case emqttd_redis_client:query(repl_var(AuthCmd, Username)) of
         {ok, undefined} ->
             {error, not_found};
         {ok, HashPass} ->
@@ -65,5 +64,6 @@ check_pass(PassHash, Password, HashType) ->
 hash(Type, Password) ->
     emqttd_auth_mod:passwd_hash(Type, Password).
 
-replvar(AuthCmd, Username) ->
-    re:replace(AuthCmd, "%u", Username, [global, {return, binary}]).
+repl_var(AuthCmd, Username) ->
+    [re:replace(Token, "%u", Username, [global, {return, binary}]) || Token <- AuthCmd].
+
