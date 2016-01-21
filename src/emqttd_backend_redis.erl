@@ -48,13 +48,15 @@ load() ->
 on_client_subscribe_after(ClientId, TopicTable, SubCmd) ->
     with_username(ClientId, fun(Username) ->
                 io:format("client ~s subscribe ~p~n", [ClientId, TopicTable]),
-                emqttd_redis_client:query(repl_var(SubCmd, Username) ++ TopicTable)
+                Res = emqttd_redis_client:query(repl_var(SubCmd, Username) ++ TopicTable),
+                io:format("Result: ~p~n", [Res])
         end).
 
 on_client_unsubscribe(ClientId, Topics, UnsubCmd) ->
     with_username(ClientId, fun(Username) ->
                 io:format("client ~s unsubscribe ~p~n", [ClientId, Topics]),
-                emqttd_redis_client:query(repl_var(UnsubCmd, Username) ++ Topics)
+                Res = emqttd_redis_client:query(repl_var(UnsubCmd, Username) ++ Topics),
+                io:format("Result: ~p~n", [Res])
         end).
 
 %% Called when the plugin application stop
