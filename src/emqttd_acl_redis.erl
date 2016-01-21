@@ -23,7 +23,6 @@
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
-
 -module(emqttd_acl_redis).
 
 -behaviour(emqttd_acl_mod).
@@ -47,13 +46,13 @@ check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) 
 
 check_acl({Client, PubSub, Topic}, #state{acl_cmd     = AclCmd,
                                           acl_nomatch = Default}) ->
-    case emqttd_redis_client:query(feed_var(Client, AclCmd)) of
+    case emqttd_redis_client:query(repl_var(Client, AclCmd)) of
         {ok, []} ->
             Default;
         {ok, Rules} ->
             case match(Client, Topic, filter(PubSub, Rules)) of
-                true  -> allow;
-                false -> Default
+                allow   -> allow;
+                nomatch -> Default
             end;
         {error, Error} ->
             {error, Error}
@@ -86,12 +85,16 @@ match(Client, Topic, [Rule|Rules]) ->
         true  -> allow
     end.
 
-feed_var(#mqtt_client{client_id = ClientId, username = Username}, Rule) ->
-    Vars = [{"%u", Username}, {"%c", ClientId}],
-    lists:foldl(fun({Var, Val}, Topic) -> feed_var(Topic, Var, Val) end, Rule, Vars).
+repl_var(Client, AclCmd) ->
+    [feed_var(Client, Token) || Token <- AclCmd].
 
-feed_var(Topic, Var, Val) ->
-    re:replace(Topic, Var, Val, [global, {return, binary}]).
+feed_var(#mqtt_client{client_id = ClientId, username = Username}, Str) ->
+    lists:foldl(fun({Var, Val}, StrAcc) ->
+                feed_var(StrAcc, Var, Val)
+        end, Str, [{"%u", Username}, {"%c", ClientId}]).
+
+feed_var(Str, Var, Val) ->
+    re:replace(Str, Var, Val, [global, {return, binary}]).
 
 reload_acl(_State) -> ok.
 
