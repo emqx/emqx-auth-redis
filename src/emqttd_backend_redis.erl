@@ -36,6 +36,8 @@
          on_client_connected/3,
          on_client_unsubscribe/3]).
 
+-define(CLIENT(Username), #mqtt_client{username = Username}).
+
 %% Called when the plugin application start
 load() ->
     with_cmd_enabled(subcmd, fun(SubCmd) ->
@@ -53,28 +55,28 @@ load() ->
 
 on_client_subscribe_after(ClientId, TopicTable, SubCmd) ->
     with_username(ClientId, fun(Username) ->
-                io:format("client ~s subscribe ~p~n", [ClientId, TopicTable]),
-                Res = emqttd_redis_client:query(repl_var(SubCmd, Username) ++ TopicTable),
-                io:format("Result: ~p~n", [Res])
+                query(repl_var(SubCmd, Username) ++ flatten(TopicTable))
         end).
 
 on_client_connected(?CONNACK_ACCEPT, #mqtt_client{username = undefined}, _LoadCmd) ->
     ok;
 
-on_client_connected(?CONNACK_ACCEPT, #mqtt_client{username = Username}, LoadCmd) ->
-    case emqttd_redis_client:query(repl_var(LoadCmd, Username)) of
-        {ok, Values} -> io:format("Values: ~p~n", [Values]);
-        {error, Error} -> io:format("Error: ~p~n", [Error])
+on_client_connected(?CONNACK_ACCEPT, #mqtt_client{username   = Username,
+                                                  client_pid = ClientPid}, LoadCmd) ->
+    CmdList = repl_var(LoadCmd, Username),
+    case emqttd_redis_client:query(CmdList) of
+        {ok, Values} ->
+            emqttd_client:subscribe(ClientPid, topics(Values));
+        {error, Error} ->
+            lager:error("Redis Error: ~p, Cmd: ~p", [Error, CmdList])
     end;
 
-on_client_connected(_ConnAck, _Client) -> ok.
+on_client_connected(_ConnAck, _Client, _LoadCmd) -> ok.
 
 on_client_unsubscribe(ClientId, Topics, UnsubCmd) ->
     with_username(ClientId, fun(Username) ->
-                io:format("client ~s unsubscribe ~p~n", [ClientId, Topics]),
-                Res = emqttd_redis_client:query(repl_var(UnsubCmd, Username) ++ Topics),
-                io:format("Result: ~p~n", [Res])
-        end).
+                query(repl_var(UnsubCmd, Username) ++ Topics)
+        end), Topics. %% return topics...
 
 %% Called when the plugin application stop
 unload() ->
@@ -90,14 +92,33 @@ with_cmd_enabled(Name, Fun) ->
 
 with_username(ClientId, Fun) ->
     case emqttd_cm:lookup(ClientId) of
-        undefined ->
-            ok;
-        #mqtt_client{username = undefined} ->
-            ok;
-        #mqtt_client{username = Username} ->
-            Fun(Username)
+        undefined          -> ok;
+        ?CLIENT(undefined) -> ok;
+        ?CLIENT(Username)  -> Fun(Username)
     end.
 
 repl_var(Cmd, Username) ->
     [re:replace(S, "%u", Username, [{return, binary}]) || S <- Cmd].
+
+query(CmdList) ->
+    case emqttd_redis_client:query(CmdList) of
+        {ok, _}        -> ok;
+        {error, Error} -> lager:error("Redis Error: ~p, Cmd: ~p", [Error, CmdList])
+    end.
+
+flatten(TopicTable) ->
+    flatten(TopicTable, []).
+flatten([], Acc) ->
+    Acc;
+flatten([{Topic, Qos}|Table], Acc) ->
+    flatten(Table, [Topic, Qos | Acc]).
+
+topics(Values) ->
+    topics(Values, []).
+topics([], Acc) ->
+    Acc;
+topics([Topic, Qos | Vals], Acc) ->
+    topics(Vals, [{Topic, i(Qos)}|Acc]).
+
+i(S) -> list_to_integer(binary_to_list(S)).
 
