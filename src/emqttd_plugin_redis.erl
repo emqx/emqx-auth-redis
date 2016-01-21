@@ -18,12 +18,11 @@
 %%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 %%% SOFTWARE.
-%%%-----------------------------------------------------------------------------
+%%%
 %%% @doc emqttd redis plugin.
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
-
 -module(emqttd_plugin_redis).
 
 -export([load/0, unload/0]).
@@ -35,12 +34,15 @@ load() ->
     {ok, HashType} = application:get_env(?APP, password_hash),
     ok = emqttd_access_control:register_mod(auth, emqttd_auth_redis, {AuthCmd, HashType}),
     with_acl_enabled(fun(AclCmd) ->
-        {ok, AclNomatch} = application:get_env(?APP, acl_nomatch),
-        ok = emqttd_access_control:register_mod(acl, emqttd_acl_redis, {AclCmd, AclNomatch})
-    end).
+                {ok, AclNomatch} = application:get_env(?APP, acl_nomatch),
+                ok = emqttd_access_control:register_mod(acl, emqttd_acl_redis, {AclCmd, AclNomatch})
+        end).
 
 unload() ->
-    ok.
+    emqttd_access_control:unregister_mod(auth, emqttd_auth_redis),
+    with_acl_enabled(fun(_AclSql) ->
+                emqttd_access_control:unregister_mod(acl, emqttd_acl_redis)
+        end).
 
 with_acl_enabled(Fun) ->
     case application:get_env(?MODULE, aclcmd) of

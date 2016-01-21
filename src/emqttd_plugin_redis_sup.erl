@@ -18,7 +18,7 @@
 %%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 %%% SOFTWARE.
-%%%-----------------------------------------------------------------------------
+%%%
 %%% @doc emqttd redis plugin supervisor
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
@@ -33,24 +33,11 @@
 %% Supervisor callbacks
 -export([init/1]).
 
-%% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
-
-%% ===================================================================
-%% API functions
-%% ===================================================================
-
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-%% ===================================================================
-%% Supervisor callbacks
-%% ===================================================================
-
 init([]) ->
     {ok, Env} = application:get_env(emqttd_plugin_redis, eredis_pool),
-
     Pool = ecpool:pool_spec(eredis_pool, eredis_pool, emqttd_redis_client, Env),
-
-    {ok, { {one_for_all, 5, 100}, [Pool]} }.
+    {ok, { {one_for_all, 10, 100}, [Pool]} }.
 

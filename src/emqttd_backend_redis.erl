@@ -18,12 +18,11 @@
 %%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 %%% SOFTWARE.
-%%%-----------------------------------------------------------------------------
+%%%
 %%% @doc emqttd redis backend.
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
-
 -module(emqttd_backend_redis).
 
 -include("../../../include/emqttd.hrl").
@@ -71,7 +70,8 @@ on_client_connected(?CONNACK_ACCEPT, #mqtt_client{username   = Username,
             lager:error("Redis Error: ~p, Cmd: ~p", [Error, CmdList])
     end;
 
-on_client_connected(_ConnAck, _Client, _LoadCmd) -> ok.
+on_client_connected(_ConnAck, _Client, _LoadCmd) ->
+    ok.
 
 on_client_unsubscribe(ClientId, Topics, UnsubCmd) ->
     with_username(ClientId, fun(Username) ->

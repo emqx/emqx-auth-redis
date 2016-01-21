@@ -18,7 +18,7 @@
 %%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 %%% SOFTWARE.
-%%%-----------------------------------------------------------------------------
+%%%
 %%% @doc emqttd redis plugin application
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
@@ -29,10 +29,6 @@
 
 %% Application callbacks
 -export([start/2, prep_stop/1, stop/1]).
-
-%% ===================================================================
-%% Application callbacks
-%% ===================================================================
 
 start(_StartType, _StartArgs) ->
     {ok, Sup} = emqttd_plugin_redis_sup:start_link(),

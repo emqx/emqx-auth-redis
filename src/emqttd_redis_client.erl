@@ -18,12 +18,11 @@
 %%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 %%% SOFTWARE.
-%%%-----------------------------------------------------------------------------
+%%%
 %%% @doc emqttd redis pool client
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
-
 -module(emqttd_redis_client).
 
 -behaviour(ecpool_worker).
@@ -32,8 +31,6 @@
 
 -export([connect/1, query/1]).
 
--define(POOL, eredis_pool).
-
 connect(Opts) ->
     eredis:start_link(get_value(host, Opts),
                       get_value(port, Opts),
@@ -41,7 +38,7 @@ connect(Opts) ->
                       get_value(password, Opts),
                       no_reconnect).
 
--spec query(iolist()) -> {ok, undefined | binary() | list()} | {error, any()}.
-query(Cmd) ->
-    ecpool:with_client(?POOL, fun(C) -> eredis:q(C, Cmd) end).
+%% Redis Query.
+-spec query(list()) -> {ok, undefined | binary() | list()} | {error, atom() | binary()}.
+query(Cmd) -> ecpool:with_client(eredis_pool, fun(C) -> eredis:q(C, Cmd) end).
 

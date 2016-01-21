@@ -18,7 +18,7 @@
 %%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 %%% SOFTWARE.
-%%%-----------------------------------------------------------------------------
+%%%
 %%% @doc ACL with Redis.
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
@@ -99,3 +99,4 @@ feed_var(Str, Var, Val) ->
 reload_acl(_State) -> ok.
 
 description() -> "Redis ACL Module".
+
