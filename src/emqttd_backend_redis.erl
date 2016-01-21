@@ -26,3 +26,58 @@
 
 -module(emqttd_backend_redis).
 
+-include("../../../include/emqttd.hrl").
+
+-export([load/0, unload/0]).
+
+-export([on_client_subscribe_after/3,
+         on_client_unsubscribe/3]).
+
+%% Called when the plugin application start
+load() ->
+    with_cmd_enabled(subcmd, fun(SubCmd) ->
+                emqttd_broker:hook('client.subscribe.after', {?MODULE, on_client_subscribe_after},
+                                   {?MODULE, on_client_subscribe_after, [SubCmd]})
+        end),
+    with_cmd_enabled(unsubcmd, fun(UnsubCmd) ->
+                emqttd_broker:hook('client.unsubscribe', {?MODULE, on_client_unsubscribe},
+                                   {?MODULE, on_client_unsubscribe, [UnsubCmd]})
+        end).
+
+
+on_client_subscribe_after(ClientId, TopicTable, SubCmd) ->
+    with_username(ClientId, fun(Username) ->
+                io:format("client ~s subscribe ~p~n", [ClientId, TopicTable]),
+                emqttd_redis_client:query(repl_var(SubCmd, Username) ++ TopicTable)
+        end).
+
+on_client_unsubscribe(ClientId, Topics, UnsubCmd) ->
+    with_username(ClientId, fun(Username) ->
+                io:format("client ~s unsubscribe ~p~n", [ClientId, Topics]),
+                emqttd_redis_client:query(repl_var(UnsubCmd, Username) ++ Topics)
+        end).
+
+%% Called when the plugin application stop
+unload() ->
+    emqttd_broker:unhook('client.subscribe.after', {?MODULE, on_client_subscribe_after}),
+    emqttd_broker:unhook('client.unsubscribe',     {?MODULE, on_client_unsubscribe}).
+
+with_cmd_enabled(Name, Fun) ->
+    case application:get_env(emqttd_plugin_redis, Name) of
+        {ok, Cmd}  -> Fun(Cmd);
+        undefined  -> ok
+    end.
+
+with_username(ClientId, Fun) ->
+    case emqttd_cm:lookup(ClientId) of
+        undefined ->
+            ok;
+        #mqtt_client{username = undefined} ->
+            ok;
+        #mqtt_client{username = Username} ->
+            Fun(Username)
+    end.
+
+repl_var(Cmd, Username) ->
+    [re:replace(S, "%u", Username, [{return, binary}]) || S <- Cmd].
+
