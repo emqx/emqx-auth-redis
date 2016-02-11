@@ -15,7 +15,6 @@
 %%--------------------------------------------------------------------
 
 %% @doc Authentication with Redis.
-%% @author Feng Lee <feng@emqtt.io>
 -module(emqttd_auth_redis).
 
 -behaviour(emqttd_auth_mod).

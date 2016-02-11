@@ -15,7 +15,6 @@
 %%--------------------------------------------------------------------
 
 %% @doc ACL with Redis.
-%% @author Feng Lee <feng@emqtt.io>
 -module(emqttd_acl_redis).
 
 -behaviour(emqttd_acl_mod).

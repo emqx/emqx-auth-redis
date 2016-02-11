@@ -15,7 +15,6 @@
 %%--------------------------------------------------------------------
 
 %% @doc emqttd redis backend.
-%% @author Feng Lee <feng@emqtt.io>
 -module(emqttd_backend_redis).
 
 -include("../../../include/emqttd.hrl").

@@ -15,7 +15,6 @@
 %%--------------------------------------------------------------------
 
 %% @doc emqttd redis pool client
-%% @author Feng Lee <feng@emqtt.io>
 -module(emqttd_redis_client).
 
 -behaviour(ecpool_worker).

@@ -15,7 +15,6 @@
 %%--------------------------------------------------------------------
 
 %% @doc emqttd redis plugin.
-%% @author Feng Lee <feng@emqtt.io>
 -module(emqttd_plugin_redis).
 
 -export([load/0, unload/0]).

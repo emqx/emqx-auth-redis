@@ -15,7 +15,6 @@
 %%--------------------------------------------------------------------
 
 %% @doc emqttd redis plugin supervisor
-%% @author Feng Lee <feng@emqtt.io>
 -module(emqttd_plugin_redis_sup).
 
 -behaviour(supervisor).

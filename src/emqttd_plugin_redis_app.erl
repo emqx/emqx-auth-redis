@@ -15,7 +15,6 @@
 %%--------------------------------------------------------------------
 
 %% @doc emqttd redis plugin application
-%% @author Feng Lee <feng@emqtt.io>
 -module(emqttd_plugin_redis_app).
 
 -behaviour(application).
