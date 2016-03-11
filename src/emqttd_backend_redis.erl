@@ -48,8 +48,8 @@ on_client_subscribe_after(ClientId, TopicTable, SubCmd) ->
 on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{username = undefined}, _LoadCmd) ->
     {ok, Client};
 
-on_client_connected(?CONNACK_ACCEPT, #mqtt_client{username   = Username,
-                                                  client_pid = ClientPid}, LoadCmd) ->
+on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{username   = Username,
+                                                           client_pid = ClientPid}, LoadCmd) ->
     CmdList = repl_var(LoadCmd, Username),
     case emqttd_redis_client:query(CmdList) of
         {ok, Values}   -> emqttd_client:subscribe(ClientPid, topics(Values));
