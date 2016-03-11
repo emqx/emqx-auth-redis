@@ -23,44 +23,39 @@
 
 -export([load/0, unload/0]).
 
--export([on_client_subscribe_after/3,
-         on_client_connected/3,
-         on_client_unsubscribe/3]).
+-export([on_client_subscribe_after/3, on_client_connected/3, on_client_unsubscribe/3]).
 
 -define(CLIENT(Username), #mqtt_client{username = Username}).
 
 %% Called when the plugin application start
 load() ->
     with_cmd_enabled(subcmd, fun(SubCmd) ->
-                emqttd_broker:hook('client.subscribe.after', {?MODULE, on_client_subscribe_after},
-                                   {?MODULE, on_client_subscribe_after, [SubCmd]})
+                emqttd:hook('client.subscribe.after', fun ?MODULE:on_client_subscribe_after/3, [SubCmd])
         end),
     with_cmd_enabled(loadsub, fun(LoadCmd) ->
-                emqttd_broker:hook('client.connected', {?MODULE, on_client_connected},
-                                   {?MODULE, on_client_connected, [LoadCmd]})
+                emqttd:hook('client.connected', fun ?MODULE:on_client_connected/3, [LoadCmd])
         end),
     with_cmd_enabled(unsubcmd, fun(UnsubCmd) ->
-                emqttd_broker:hook('client.unsubscribe', {?MODULE, on_client_unsubscribe},
-                                   {?MODULE, on_client_unsubscribe, [UnsubCmd]})
+                emqttd:hook('client.unsubscribe', fun ?MODULE:on_client_unsubscribe/3, [UnsubCmd])
         end).
 
 on_client_subscribe_after(ClientId, TopicTable, SubCmd) ->
     with_username(ClientId, fun(Username) ->
                 query(repl_var(SubCmd, Username) ++ flatten(TopicTable))
-        end).
+        end),
+    {ok, TopicTable}.
 
-on_client_connected(?CONNACK_ACCEPT, #mqtt_client{username = undefined}, _LoadCmd) ->
-    ok;
+on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{username = undefined}, _LoadCmd) ->
+    {ok, Client};
 
 on_client_connected(?CONNACK_ACCEPT, #mqtt_client{username   = Username,
                                                   client_pid = ClientPid}, LoadCmd) ->
     CmdList = repl_var(LoadCmd, Username),
     case emqttd_redis_client:query(CmdList) of
-        {ok, Values} ->
-            emqttd_client:subscribe(ClientPid, topics(Values));
-        {error, Error} ->
-            lager:error("Redis Error: ~p, Cmd: ~p", [Error, CmdList])
-    end;
+        {ok, Values}   -> emqttd_client:subscribe(ClientPid, topics(Values));
+        {error, Error} -> lager:error("Redis Error: ~p, Cmd: ~p", [Error, CmdList])
+    end,
+    {ok, Client};
 
 on_client_connected(_ConnAck, _Client, _LoadCmd) ->
     ok.
@@ -68,13 +63,14 @@ on_client_connected(_ConnAck, _Client, _LoadCmd) ->
 on_client_unsubscribe(ClientId, Topics, UnsubCmd) ->
     with_username(ClientId, fun(Username) ->
                 query(repl_var(UnsubCmd, Username) ++ Topics)
-        end), Topics. %% return topics...
+        end),
+    {ok, Topics}. %% return topics...
 
 %% Called when the plugin application stop
 unload() ->
-    emqttd_broker:unhook('client.subscribe.after', {?MODULE, on_client_subscribe_after}),
-    emqttd_broker:unhook('client.connected',       {?MODULE, on_client_connected}),
-    emqttd_broker:unhook('client.unsubscribe',     {?MODULE, on_client_unsubscribe}).
+    emqttd:unhook('client.subscribe.after', fun ?MODULE:on_client_subscribe_after/3),
+    emqttd:unhook('client.connected',       fun ?MODULE:on_client_connected/3),
+    emqttd:unhook('client.unsubscribe',     fun ?MODULE:on_client_unsubscribe/3).
 
 with_cmd_enabled(Name, Fun) ->
     case application:get_env(emqttd_plugin_redis, Name) of
