@@ -31,7 +31,6 @@ File: etc/plugin.config
     {eredis_pool, [
       %% ecpool options
       {pool_size, 8},
-      {pool_type, round_robin},
       {auto_reconnect, 2},
 
       %% eredis options
@@ -53,17 +52,39 @@ File: etc/plugin.config
     %% If no rules matched, return...
     {acl_nomatch, deny},
 
-    %% Store subscriptions to redis when SUBSCRIBE packets received.
-    {subcmd, ["HMSET", "mqtt_subs:%u"]},
-
     %% Load Subscriptions form Redis when client connected.
-    {loadsub, ["HGETALL", "mqtt_subs:%u"]},
-
-    %% Remove subscriptions from redis when UNSUBSCRIBE packets received.
-    {unsubcmd, ["HDEL", "mqtt_subs:%u"]}
+    {subcmd, ["HGETALL", "mqtt_subs:%u"]}
 
   ]}
 ].
+```
+
+## User Hash with Password
+
+Set a 'user' hash with 'password' field, for example:
+
+```
+HSET mqtt_user:<username> password "passwd"
+```
+
+## ACL Rule List
+
+The plugin uses a redis set to store ACL rules:
+
+```
+SADD mqtt_acl:<username> "publish topic1"
+SADD mqtt_acl:<username> "subscribe topic2"
+SADD mqtt_acl:<username> "pubsub topic3"
+```
+
+## Subscription Hash
+
+The plugin could store the static subscriptions into a redis Hash:
+
+```
+HSET mqtt_subs:<username> topic1 0
+HSET mqtt_subs:<username> topic2 1
+HSET mqtt_subs:<username> topic3 2
 ```
 
 ## Load Plugin

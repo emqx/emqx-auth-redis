@@ -17,28 +17,81 @@
 %% @doc emqttd redis plugin.
 -module(emqttd_plugin_redis).
 
+-include("../../../include/emqttd.hrl").
+
+-include("../../../include/emqttd_protocol.hrl").
+
 -export([load/0, unload/0]).
+
+-export([on_client_connected/3]).
 
 -define(APP, ?MODULE).
 
+-define(CLIENT(Username), #mqtt_client{username = Username}).
+
+%% Called when the plugin loaded
 load() ->
-    {ok, AuthCmd}  = application:get_env(?APP, authcmd),
-    {ok, HashType} = application:get_env(?APP, password_hash),
-    ok = emqttd_access_control:register_mod(auth, emqttd_auth_redis, {AuthCmd, HashType}),
-    with_acl_enabled(fun(AclCmd) ->
-                {ok, AclNomatch} = application:get_env(?APP, acl_nomatch),
-                ok = emqttd_access_control:register_mod(acl, emqttd_acl_redis, {AclCmd, AclNomatch})
+    ok = emqttd_access_control:register_mod(
+            auth, emqttd_auth_redis, {env(authcmd), env(password_hash)}),
+    with_cmd_enabled(aclcmd, fun(AclCmd) ->
+            ok = emqttd_access_control:register_mod(acl, emqttd_acl_redis, {AclCmd, env(acl_nomatch)})
+        end),
+    with_cmd_enabled(subcmd, fun(SubCmd) ->
+            emqttd:hook('client.connected', fun ?MODULE:on_client_connected/3, [SubCmd])
         end).
 
+env(Key) -> {ok, Val} = application:get_env(?APP, Key), Val.
+
+on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{username = undefined}, _LoadCmd) ->
+    {ok, Client};
+
+on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{username   = Username,
+                                                           client_pid = ClientPid}, LoadCmd) ->
+    CmdList = repl_var(LoadCmd, Username),
+    case emqttd_redis_client:query(CmdList) of
+        {ok, Values}   -> emqttd_client:subscribe(ClientPid, topics(Values));
+        {error, Error} -> lager:error("Redis Error: ~p, Cmd: ~p", [Error, CmdList])
+    end,
+    {ok, Client};
+
+on_client_connected(_ConnAck, _Client, _LoadCmd) ->
+    ok.
+
 unload() ->
+    emqttd:unhook('client.connected',       fun ?MODULE:on_client_connected/3),
     emqttd_access_control:unregister_mod(auth, emqttd_auth_redis),
     with_acl_enabled(fun(_AclSql) ->
                 emqttd_access_control:unregister_mod(acl, emqttd_acl_redis)
         end).
 
-with_acl_enabled(Fun) ->
-    case application:get_env(?MODULE, aclcmd) of
-        {ok, AclCmd} -> Fun(AclCmd);
-        undefined    -> ok
+with_cmd_enabled(Name, Fun) ->
+    case application:get_env(emqttd_plugin_redis, Name) of
+        {ok, Cmd}  -> Fun(Cmd);
+        undefined  -> ok
     end.
+
+with_username(ClientId, Fun) ->
+    case emqttd_cm:lookup(ClientId) of
+        undefined          -> ok;
+        ?CLIENT(undefined) -> ok;
+        ?CLIENT(Username)  -> Fun(Username)
+    end.
+
+repl_var(Cmd, Username) ->
+    [re:replace(S, "%u", Username, [{return, binary}]) || S <- Cmd].
+
+query(CmdList) ->
+    case emqttd_redis_client:query(CmdList) of
+        {ok, _}        -> ok;
+        {error, Error} -> lager:error("Redis Error: ~p, Cmd: ~p", [Error, CmdList])
+    end.
+
+topics(Values) ->
+    topics(Values, []).
+topics([], Acc) ->
+    Acc;
+topics([Topic, Qos | Vals], Acc) ->
+    topics(Vals, [{Topic, i(Qos)}|Acc]).
+
+i(S) -> list_to_integer(binary_to_list(S)).
 
