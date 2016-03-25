@@ -58,10 +58,10 @@ on_client_connected(_ConnAck, _Client, _LoadCmd) ->
     ok.
 
 unload() ->
-    emqttd:unhook('client.connected',       fun ?MODULE:on_client_connected/3),
+    emqttd:unhook('client.connected', fun ?MODULE:on_client_connected/3),
     emqttd_access_control:unregister_mod(auth, emqttd_auth_redis),
-    with_acl_enabled(fun(_AclSql) ->
-                emqttd_access_control:unregister_mod(acl, emqttd_acl_redis)
+    with_cmd_enabled(aclcmd, fun(_AclCmd) ->
+            emqttd_access_control:unregister_mod(acl, emqttd_acl_redis)
         end).
 
 with_cmd_enabled(Name, Fun) ->
@@ -70,21 +70,8 @@ with_cmd_enabled(Name, Fun) ->
         undefined  -> ok
     end.
 
-with_username(ClientId, Fun) ->
-    case emqttd_cm:lookup(ClientId) of
-        undefined          -> ok;
-        ?CLIENT(undefined) -> ok;
-        ?CLIENT(Username)  -> Fun(Username)
-    end.
-
 repl_var(Cmd, Username) ->
     [re:replace(S, "%u", Username, [{return, binary}]) || S <- Cmd].
-
-query(CmdList) ->
-    case emqttd_redis_client:query(CmdList) of
-        {ok, _}        -> ok;
-        {error, Error} -> lager:error("Redis Error: ~p, Cmd: ~p", [Error, CmdList])
-    end.
 
 topics(Values) ->
     topics(Values, []).
