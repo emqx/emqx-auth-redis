@@ -67,7 +67,7 @@ Set a 'user' hash with 'password' field, for example:
 HSET mqtt_user:<username> password "passwd"
 ```
 
-## ACL Rule List
+## ACL Rule Set
 
 The plugin uses a redis set to store ACL rules:
 
