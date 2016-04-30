@@ -1,3 +1,6 @@
 ebin/
 .rebar/
 .eunit/
+.erlang.mk/
+emqttd_auth_redis.d
+deps/

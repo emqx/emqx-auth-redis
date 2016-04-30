@@ -1,7 +1,7 @@
-{application, emqttd_plugin_redis,
+{application, emqttd_auth_redis,
  [
-  {description, "emqttd Redis Plugin"},
-  {vsn, "1.0"},
+  {description, "emqttd authentication against Redis"},
+  {vsn, "1.1"},
   {registered, []},
   {applications, [
                   kernel,
@@ -9,6 +9,6 @@
                   eredis,
                   ecpool
                  ]},
-  {mod, { emqttd_plugin_redis_app, []}},
+  {mod, { emqttd_auth_redis_app, []}},
   {env, []}
  ]}.

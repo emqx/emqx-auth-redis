@@ -17,9 +17,9 @@
 %% @doc emqttd redis plugin.
 -module(emqttd_plugin_redis).
 
--include("../../../include/emqttd.hrl").
+-include_lib("emqttd/include/emqttd.hrl").
 
--include("../../../include/emqttd_protocol.hrl").
+-include_lib("emqttd/include/emqttd_protocol.hrl").
 
 -export([load/0, unload/0]).
 

@@ -15,7 +15,7 @@
 %%--------------------------------------------------------------------
 
 %% @doc emqttd redis plugin application
--module(emqttd_plugin_redis_app).
+-module(emqttd_auth_redis_app).
 
 -behaviour(application).
 
