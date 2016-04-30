@@ -2,6 +2,7 @@
  [
   {description, "emqttd authentication against Redis"},
   {vsn, "1.1"},
+  {modules, []},
   {registered, []},
   {applications, [
                   kernel,
