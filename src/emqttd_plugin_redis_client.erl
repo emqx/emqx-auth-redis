@@ -14,8 +14,8 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc emqttd redis pool client
--module(emqttd_redis_client).
+%% @doc emqttd redis client
+-module(emqttd_plugin_redis_client).
 
 -behaviour(ecpool_worker).
 

@@ -40,8 +40,8 @@ check_acl({Client, PubSub, Topic}, #state{super_cmd   = SuperCmd,
                                           acl_cmd     = AclCmd,
                                           acl_nomatch = Default}) ->
 
-    case emqttd_redis_client:is_superuser(SuperCmd, Client) of
-        false -> case emqttd_redis_client:query(AclCmd, Client) of
+    case emqttd_plugin_redis_client:is_superuser(SuperCmd, Client) of
+        false -> case emqttd_plugin_redis_client:query(AclCmd, Client) of
                      {ok, []} ->
                          Default;
                      {ok, Rules} ->

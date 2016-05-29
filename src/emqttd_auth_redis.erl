@@ -34,7 +34,7 @@ check(#mqtt_client{username = Username}, _Password, _State) when ?UNDEFINED(User
     {error, username_undefined};
 
 check(Client, Password, #state{super_cmd = SuperCmd}) when ?UNDEFINED(Password) ->
-    case emqttd_redis_client:is_superuser(SuperCmd, Client) of
+    case emqttd_plugin_redis_client:is_superuser(SuperCmd, Client) of
         true  -> ok;
         false -> {error, password_undefined}
     end;
@@ -42,8 +42,8 @@ check(Client, Password, #state{super_cmd = SuperCmd}) when ?UNDEFINED(Password) 
 check(Client, Password, #state{super_cmd = SuperCmd,
                                auth_cmd  = AuthCmd,
                                hash_type = HashType}) ->
-    case emqttd_redis_client:is_superuser(SuperCmd, Client) of
-        false -> case emqttd_redis_client:query(AuthCmd, Client) of
+    case emqttd_plugin_redis_client:is_superuser(SuperCmd, Client) of
+        false -> case emqttd_plugin_redis_client:query(AuthCmd, Client) of
                      {ok, undefined} ->
                          {error, not_found};
                      {ok, HashPass} ->

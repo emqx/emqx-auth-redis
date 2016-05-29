@@ -32,6 +32,6 @@ start_link() ->
 
 init([]) ->
     {ok, Env} = application:get_env(?APP, eredis_pool),
-    PoolSpec = ecpool:pool_spec(?APP, ?APP, emqttd_redis_client, Env),
+    PoolSpec = ecpool:pool_spec(?APP, ?APP, emqttd_plugin_redis_client, Env),
     {ok, { {one_for_all, 10, 100}, [PoolSpec]} }.
 

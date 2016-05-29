@@ -27,8 +27,6 @@
 
 -define(APP, ?MODULE).
 
--define(CLIENT(Username), #mqtt_client{username = Username}).
-
 %% Called when the plugin loaded
 load() ->
     SuperCmd = application:get_env(?APP, supercmd, undefined),
@@ -44,7 +42,7 @@ load() ->
 env(Key) -> {ok, Val} = application:get_env(?APP, Key), Val.
 
 on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{client_pid = ClientPid}, SubCmd) ->
-    case emqttd_redis_client:query(SubCmd, Client) of
+    case emqttd_plugin_redis_client:query(SubCmd, Client) of
         {ok, Values}   -> emqttd_client:subscribe(ClientPid, topics(Values));
         {error, Error} -> lager:error("Redis Error: ~p, Cmd: ~p", [Error, SubCmd])
     end,

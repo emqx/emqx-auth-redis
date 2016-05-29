@@ -24,7 +24,8 @@
 
 start(_StartType, _StartArgs) ->
     {ok, Sup} = emqttd_plugin_redis_sup:start_link(),
-    emqttd_plugin_redis:load(), {ok, Sup}.
+    emqttd_plugin_redis:load(),
+    {ok, Sup}.
 
 prep_stop(State) ->
     emqttd_plugin_redis:unload(), State.
