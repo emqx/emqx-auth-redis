@@ -23,7 +23,7 @@
 
 -import(proplists, [get_value/2]).
 
--export([is_superuser/2, connect/1, query/1]).
+-export([is_superuser/2, connect/1, query/1, query/2]).
 
 %%--------------------------------------------------------------------
 %% Is Superuser?
