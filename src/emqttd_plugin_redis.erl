@@ -31,26 +31,22 @@
 
 %% Called when the plugin loaded
 load() ->
+    SuperCmd = application:get_env(?APP, supercmd, undefined),
     ok = emqttd_access_control:register_mod(
-            auth, emqttd_auth_redis, {env(authcmd), env(password_hash)}),
-    with_cmd_enabled(aclcmd, fun(AclCmd) ->
-            ok = emqttd_access_control:register_mod(acl, emqttd_acl_redis, {AclCmd, env(acl_nomatch)})
+            auth, emqttd_auth_redis, {SuperCmd, env(authcmd), env(password_hash)}),
+    ok = with_cmd_enabled(aclcmd, fun(AclCmd) ->
+            emqttd_access_control:register_mod(acl, emqttd_acl_redis, {SuperCmd, AclCmd, env(acl_nomatch)})
         end),
-    with_cmd_enabled(subcmd, fun(SubCmd) ->
+    ok = with_cmd_enabled(subcmd, fun(SubCmd) ->
             emqttd:hook('client.connected', fun ?MODULE:on_client_connected/3, [SubCmd])
         end).
 
 env(Key) -> {ok, Val} = application:get_env(?APP, Key), Val.
 
-on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{username = undefined}, _LoadCmd) ->
-    {ok, Client};
-
-on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{username   = Username,
-                                                           client_pid = ClientPid}, LoadCmd) ->
-    CmdList = repl_var(LoadCmd, Username),
-    case emqttd_redis_client:query(CmdList) of
+on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{client_pid = ClientPid}, SubCmd) ->
+    case emqttd_redis_client:query(SubCmd, Client) of
         {ok, Values}   -> emqttd_client:subscribe(ClientPid, topics(Values));
-        {error, Error} -> lager:error("Redis Error: ~p, Cmd: ~p", [Error, CmdList])
+        {error, Error} -> lager:error("Redis Error: ~p, Cmd: ~p", [Error, SubCmd])
     end,
     {ok, Client};
 
@@ -65,13 +61,10 @@ unload() ->
         end).
 
 with_cmd_enabled(Name, Fun) ->
-    case application:get_env(emqttd_plugin_redis, Name) of
-        {ok, Cmd}  -> Fun(Cmd);
-        undefined  -> ok
+    case application:get_env(?APP, Name) of
+        {ok, Cmd} -> Fun(Cmd);
+        undefined -> ok
     end.
-
-repl_var(Cmd, Username) ->
-    [re:replace(S, "%u", Username, [{return, binary}]) || S <- Cmd].
 
 topics(Values) ->
     topics(Values, []).

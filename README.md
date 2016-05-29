@@ -1,8 +1,11 @@
-# emqttd_plugin_redis
+
+emqttd_plugin_redis
+===================
 
 emqttd Redis Plugin
 
-## Build Plugin
+Build Plugin
+------------
 
 Add the plugin as submodule of emqttd project.
 
@@ -20,7 +23,8 @@ git submodule add https://github.com/emqtt/emqttd_plugin_redis.git plugins/emqtt
 
 And then build emqttd project.
 
-## Configure Plugin
+Configure Plugin
+----------------
 
 File: etc/plugin.config
 
@@ -59,7 +63,8 @@ File: etc/plugin.config
 ].
 ```
 
-## User Hash with Password
+User Hash with Password
+-----------------------
 
 Set a 'user' hash with 'password' field, for example:
 
@@ -67,7 +72,8 @@ Set a 'user' hash with 'password' field, for example:
 HSET mqtt_user:<username> password "passwd"
 ```
 
-## ACL Rule Set
+ACL Rule Set
+------------
 
 The plugin uses a redis set to store ACL rules:
 
@@ -77,7 +83,8 @@ SADD mqtt_acl:<username> "subscribe topic2"
 SADD mqtt_acl:<username> "pubsub topic3"
 ```
 
-## Subscription Hash
+Subscription Hash
+-----------------
 
 The plugin could store the static subscriptions into a redis Hash:
 
@@ -87,13 +94,15 @@ HSET mqtt_subs:<username> topic2 1
 HSET mqtt_subs:<username> topic3 2
 ```
 
-## Load Plugin
+Load Plugin
+-----------
 
 ```
 ./bin/emqttd_ctl plugins load emqttd_plugin_redis
 ```
 
-## Author
+Author
+------
 
 Feng Lee <feng@emqtt.io>
 

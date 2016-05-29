@@ -23,29 +23,36 @@
 
 -export([init/1, check/3, description/0]).
 
--record(state, {auth_cmd, hash_type}).
+-record(state, {super_cmd, auth_cmd, hash_type}).
 
 -define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
 
-init({AuthCmd, HashType}) -> 
-    {ok, #state{auth_cmd = AuthCmd, hash_type = HashType}}.
+init({SuperCmd, AuthCmd, HashType}) -> 
+    {ok, #state{super_cmd = SuperCmd, auth_cmd = AuthCmd, hash_type = HashType}}.
 
-check(#mqtt_client{username = Username}, Password, _State)
-    when ?UNDEFINED(Username) orelse ?UNDEFINED(Password) ->
-    {error, username_or_passwd_undefined};
+check(#mqtt_client{username = Username}, _Password, _State) when ?UNDEFINED(Username) ->
+    {error, username_undefined};
 
-check(#mqtt_client{username = Username}, Password,
-      #state{auth_cmd = AuthCmd, hash_type = HashType}) ->
-    case emqttd_redis_client:query(repl_var(AuthCmd, Username)) of
-        {ok, undefined} ->
-            {error, not_found};
-        {ok, HashPass} ->
-            check_pass(HashPass, Password, HashType);
-        {error, Error} ->
-            {error, Error}
+check(Client, Password, #state{super_cmd = SuperCmd}) when ?UNDEFINED(Password) ->
+    case emqttd_redis_client:is_superuser(SuperCmd, Client) of
+        true  -> ok;
+        false -> {error, password_undefined}
+    end;
+
+check(Client, Password, #state{super_cmd = SuperCmd,
+                               auth_cmd  = AuthCmd,
+                               hash_type = HashType}) ->
+    case emqttd_redis_client:is_superuser(SuperCmd, Client) of
+        false -> case emqttd_redis_client:query(AuthCmd, Client) of
+                     {ok, undefined} ->
+                         {error, not_found};
+                     {ok, HashPass} ->
+                         check_pass(HashPass, Password, HashType);
+                     {error, Error} ->
+                         {error, Error}
+                 end;
+        true  -> ok
     end.
-
-description() -> "Authentication with Redis".
 
 check_pass(PassHash, Password, HashType) ->
     case PassHash =:= hash(HashType, Password) of
@@ -56,6 +63,5 @@ check_pass(PassHash, Password, HashType) ->
 hash(Type, Password) ->
     emqttd_auth_mod:passwd_hash(Type, Password).
 
-repl_var(AuthCmd, Username) ->
-    [re:replace(Token, "%u", Username, [global, {return, binary}]) || Token <- AuthCmd].
+description() -> "Authentication with Redis".
 
