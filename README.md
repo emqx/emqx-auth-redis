@@ -44,6 +44,11 @@ File: etc/plugin.config
       {password, ""}
     ]},
 
+    %% Variables: %u = username, %c = clientid
+
+    %% HMGET mqtt_user:%u is_superuser
+    {supercmd, ["HGET", "mqtt_user:%u", "is_superuser"]},
+
     %% HMGET mqtt_user:%u password
     {authcmd, ["HGET", "mqtt_user:%u", "password"]},
 
@@ -61,6 +66,13 @@ File: etc/plugin.config
 
   ]}
 ].
+```
+
+Super User
+----------
+
+```
+HSET mqtt_user:<username> is_superuser 1
 ```
 
 User Hash with Password
