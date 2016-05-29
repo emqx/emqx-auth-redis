@@ -53,12 +53,12 @@ connect(Opts) ->
 %% Redis Query.
 -spec(query(list()) -> {ok, undefined | binary() | list()} | {error, atom() | binary()}).
 query(Cmd) ->
-    ecpool:with_client(eredis_pool, fun(C) -> eredis:q(C, Cmd) end).
+    ecpool:with_client(emqttd_plugin_redis, fun(C) -> eredis:q(C, Cmd) end).
 
 -spec(query(list(), mqtt_client()) -> {ok, undefined | binary() | list()} | {error, atom() | binary()}).
 query(Cmd, Client) ->
     Cmd1 = replvar(Cmd, Client), io:format("Cmd1: ~p~n", [Cmd1]),
-    ecpool:with_client(eredis_pool, fun(C) -> eredis:q(C, Cmd1) end).
+    ecpool:with_client(emqttd_plugin_redis, fun(C) -> eredis:q(C, Cmd1) end).
 
 replvar(Cmd, #mqtt_client{client_id = ClientId, username = Username}) ->
     [replvar(replvar(S, "%u", Username), "%c", ClientId) || S <- Cmd].
