@@ -36,6 +36,7 @@ is_superuser(SuperCmd, Client) ->
     case query(SuperCmd, Client) of
         {ok, undefined} -> false;
         {ok, <<"1">>}   -> true;
+        {ok, _Other}    -> false;
         {error, _Error} -> false
     end.
 
@@ -57,8 +58,7 @@ query(Cmd) ->
 
 -spec(query(list(), mqtt_client()) -> {ok, undefined | binary() | list()} | {error, atom() | binary()}).
 query(Cmd, Client) ->
-    Cmd1 = replvar(Cmd, Client), io:format("Cmd1: ~p~n", [Cmd1]),
-    ecpool:with_client(emqttd_plugin_redis, fun(C) -> eredis:q(C, Cmd1) end).
+    ecpool:with_client(emqttd_plugin_redis, fun(C) -> eredis:q(C, replvar(Cmd, Client)) end).
 
 replvar(Cmd, #mqtt_client{client_id = ClientId, username = Username}) ->
     [replvar(replvar(S, "%u", Username), "%c", ClientId) || S <- Cmd].
