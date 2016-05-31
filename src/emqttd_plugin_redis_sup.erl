@@ -25,11 +25,13 @@
 %% Supervisor callbacks
 -export([init/1]).
 
+-define(APP, emqttd_plugin_redis).
+
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-    {ok, Env} = application:get_env(emqttd_plugin_redis, eredis_pool),
-    Pool = ecpool:pool_spec(eredis_pool, eredis_pool, emqttd_redis_client, Env),
-    {ok, { {one_for_all, 10, 100}, [Pool]} }.
+    {ok, Env} = application:get_env(?APP, eredis_pool),
+    PoolSpec = ecpool:pool_spec(?APP, ?APP, emqttd_plugin_redis_client, Env),
+    {ok, { {one_for_all, 10, 100}, [PoolSpec]} }.
 
