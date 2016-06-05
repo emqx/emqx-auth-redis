@@ -24,30 +24,35 @@
 %% ACL callbacks
 -export([init/1, check_acl/2, reload_acl/1, description/0]).
 
--record(state, {acl_cmd, acl_nomatch}).
+-record(state, {super_cmd, acl_cmd, acl_nomatch}).
 
 -define(IS_PUB(PubSub), PubSub =:= publish orelse PubSub =:= pubsub).
 
 -define(IS_SUB(PubSub), PubSub =:= subscribe orelse PubSub =:= pubsub).
 
-init({AclCmd, AclNomatch}) ->
-    {ok, #state{acl_cmd = AclCmd, acl_nomatch = AclNomatch}}.
+init({SuperCmd, AclCmd, AclNomatch}) ->
+    {ok, #state{super_cmd = SuperCmd, acl_cmd = AclCmd, acl_nomatch = AclNomatch}}.
 
 check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
     {error, bad_username};
 
-check_acl({Client, PubSub, Topic}, #state{acl_cmd     = AclCmd,
+check_acl({Client, PubSub, Topic}, #state{super_cmd   = SuperCmd,
+                                          acl_cmd     = AclCmd,
                                           acl_nomatch = Default}) ->
-    case emqttd_redis_client:query(repl_var(Client, AclCmd)) of
-        {ok, []} ->
-            Default;
-        {ok, Rules} ->
-            case match(Client, Topic, filter(PubSub, Rules)) of
-                allow   -> allow;
-                nomatch -> Default
-            end;
-        {error, Error} ->
-            {error, Error}
+
+    case emqttd_auth_redis_client:is_superuser(SuperCmd, Client) of
+        false -> case emqttd_auth_redis_client:query(AclCmd, Client) of
+                     {ok, []} ->
+                         Default;
+                     {ok, Rules} ->
+                         case match(Client, Topic, filter(PubSub, Rules)) of
+                             allow   -> allow;
+                             nomatch -> Default
+                         end;
+                     {error, Error} ->
+                         {error, Error}
+                 end;
+        true  -> allow
     end.
 
 filter(PubSub, Rules) ->
@@ -77,14 +82,13 @@ match(Client, Topic, [Rule|Rules]) ->
         true  -> allow
     end.
 
-repl_var(Client, AclCmd) ->
-    [feed_var(Client, Token) || Token <- AclCmd].
-
 feed_var(#mqtt_client{client_id = ClientId, username = Username}, Str) ->
     lists:foldl(fun({Var, Val}, StrAcc) ->
                 feed_var(StrAcc, Var, Val)
         end, Str, [{"%u", Username}, {"%c", ClientId}]).
 
+feed_var(Str, _Var, undefined) ->
+    Str;
 feed_var(Str, Var, Val) ->
     re:replace(Str, Var, Val, [global, {return, binary}]).
 

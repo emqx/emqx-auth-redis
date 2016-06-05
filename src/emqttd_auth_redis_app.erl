@@ -14,7 +14,6 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc emqttd redis plugin application
 -module(emqttd_auth_redis_app).
 
 -behaviour(application).
@@ -23,8 +22,9 @@
 -export([start/2, prep_stop/1, stop/1]).
 
 start(_StartType, _StartArgs) ->
-    {ok, Sup} = emqttd_plugin_redis_sup:start_link(),
-    emqttd_plugin_redis:load(), {ok, Sup}.
+    {ok, Sup} = emqttd_auth_redis_sup:start_link(),
+    emqttd_plugin_redis:load(),
+    {ok, Sup}.
 
 prep_stop(State) ->
     emqttd_plugin_redis:unload(), State.

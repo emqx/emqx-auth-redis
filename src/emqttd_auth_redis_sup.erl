@@ -14,23 +14,23 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc emqttd redis pool client
--module(emqttd_redis_client).
+-module(emqttd_auth_redis_sup).
 
--behaviour(ecpool_worker).
+-behaviour(supervisor).
 
--import(proplists, [get_value/2]).
+%% API
+-export([start_link/0]).
 
--export([connect/1, query/1]).
+%% Supervisor callbacks
+-export([init/1]).
 
-connect(Opts) ->
-    eredis:start_link(get_value(host, Opts),
-                      get_value(port, Opts),
-                      get_value(database, Opts),
-                      get_value(password, Opts),
-                      no_reconnect).
+-define(APP, emqttd_auth_redis).
 
-%% Redis Query.
--spec query(list()) -> {ok, undefined | binary() | list()} | {error, atom() | binary()}.
-query(Cmd) -> ecpool:with_client(eredis_pool, fun(C) -> eredis:q(C, Cmd) end).
+start_link() ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+
+init([]) ->
+    {ok, Env} = application:get_env(?APP, eredis_pool),
+    PoolSpec = ecpool:pool_spec(?APP, ?APP, emqttd_auth_redis_client, Env),
+    {ok, { {one_for_all, 10, 100}, [PoolSpec]} }.
 
