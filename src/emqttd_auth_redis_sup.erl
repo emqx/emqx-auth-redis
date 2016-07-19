@@ -30,7 +30,7 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-    {ok, Env} = application:get_env(?APP, eredis_pool),
+    {ok, Env} = gen_conf:value(?APP, eredis_pool),
     PoolSpec = ecpool:pool_spec(?APP, ?APP, emqttd_auth_redis_client, Env),
     {ok, { {one_for_all, 10, 100}, [PoolSpec]} }.
 

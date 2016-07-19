@@ -22,6 +22,7 @@
 -export([start/2, prep_stop/1, stop/1]).
 
 start(_StartType, _StartArgs) ->
+    gen_conf:init(emqttd_auth_redis),
     {ok, Sup} = emqttd_auth_redis_sup:start_link(),
     emqttd_plugin_redis:load(),
     {ok, Sup}.
