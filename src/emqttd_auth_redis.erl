@@ -19,13 +19,19 @@
 
 -behaviour(emqttd_auth_mod).
 
+-include("emqttd_auth_redis.hrl").
+
 -include_lib("emqttd/include/emqttd.hrl").
+
+-export([pool_name/1]).
 
 -export([init/1, check/3, description/0]).
 
 -record(state, {super_cmd, auth_cmd, hash_type}).
 
 -define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
+
+pool_name(Pool) -> list_to_atom(lists:concat([?APP, '_', Pool])).
 
 init({SuperCmd, AuthCmd, HashType}) -> 
     {ok, #state{super_cmd = SuperCmd, auth_cmd = AuthCmd, hash_type = HashType}}.
