@@ -21,17 +21,16 @@
 -include("emqttd_auth_redis.hrl").
 
 %% API
--export([start_link/1]).
+-export([start_link/0]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
-start_link(Pools) ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, [Pools]).
+start_link() ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-init([Pools]) ->
-    {ok, {{one_for_one, 10, 100}, [pool_spec(Pool, Env) || {redis, Pool, Env} <- Pools]}}.
-
-pool_spec(Pool, Env) ->
-    ecpool:pool_spec({?APP, Pool}, ?APP:pool_name(Pool), ?APP, Env).
+init([]) ->
+    {ok, PoolEnv} = gen_conf:value(?APP, redis_pool),
+    PoolSpec = ecpool:pool_spec(?APP, ?APP, emqttd_auth_redis_client, PoolEnv),
+    {ok, {{one_for_one, 10, 100}, [PoolSpec]}}.
 

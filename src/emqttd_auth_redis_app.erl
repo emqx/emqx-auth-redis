@@ -21,18 +21,14 @@
 -include("emqttd_auth_redis.hrl").
 
 %% Application callbacks
--export([start/2, prep_stop/1, stop/1]).
+-export([start/2, stop/1]).
 
 start(_StartType, _StartArgs) ->
-    gen_conf:init(emqttd_auth_redis),
-    Pools = gen_conf:list(?APP, redis),
-    {ok, Sup} = emqttd_auth_redis_sup:start_link(Pools),
+    gen_conf:init(?APP),
+    {ok, Sup} = emqttd_auth_redis_sup:start_link(),
     emqttd_plugin_redis:load(),
     {ok, Sup}.
 
-prep_stop(State) ->
-    emqttd_plugin_redis:unload(), State.
-
 stop(_State) ->
-    ok.
+    emqttd_plugin_redis:unload().
 

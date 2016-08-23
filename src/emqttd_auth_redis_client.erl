@@ -18,13 +18,13 @@
 
 -behaviour(ecpool_worker).
 
+-include("emqttd_auth_redis.hrl").
+
 -include_lib("emqttd/include/emqttd.hrl").
 
 -import(proplists, [get_value/2]).
 
 -export([is_superuser/2, connect/1, query/1, query/2]).
-
--define(APP, emqttd_auth_redis).
 
 %%--------------------------------------------------------------------
 %% Is Superuser?
