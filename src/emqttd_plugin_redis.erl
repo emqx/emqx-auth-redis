@@ -16,6 +16,8 @@
 
 -module(emqttd_plugin_redis).
 
+-include("emqttd_auth_redis.hrl").
+
 -include_lib("emqttd/include/emqttd.hrl").
 
 -include_lib("emqttd/include/emqttd_protocol.hrl").
@@ -23,8 +25,6 @@
 -export([load/0, unload/0]).
 
 -export([on_client_connected/3]).
-
--define(APP, emqttd_auth_redis).
 
 %% Called when the plugin loaded
 load() ->
