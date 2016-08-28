@@ -28,7 +28,7 @@
 
 %% Called when the plugin loaded
 load() ->
-    SuperCmd = gen_conf:value(?APP, supercmd),
+    {ok, SuperCmd} = gen_conf:value(?APP, supercmd),
     ok = emqttd_access_control:register_mod(
             auth, emqttd_auth_redis, {SuperCmd, env(authcmd), env(password_hash)}),
     ok = with_cmd_enabled(aclcmd, fun(AclCmd) ->
