@@ -8,3 +8,8 @@ ct.coverdata
 logs/
 test/ct.cover.spec
 ebin/
+*.o
+*.beam
+*.plt
+erl_crash.dump
+
