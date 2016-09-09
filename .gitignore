@@ -1,3 +1,15 @@
-ebin/
+dddd/
 .rebar/
 .eunit/
+.erlang.mk/
+emqttd_auth_redis.d
+deps/
+ct.coverdata
+logs/
+test/ct.cover.spec
+ebin/
+*.o
+*.beam
+*.plt
+erl_crash.dump
+

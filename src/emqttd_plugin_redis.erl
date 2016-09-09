@@ -14,22 +14,21 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc emqttd redis plugin.
 -module(emqttd_plugin_redis).
 
--include("../../../include/emqttd.hrl").
+-include("emqttd_auth_redis.hrl").
 
--include("../../../include/emqttd_protocol.hrl").
+-include_lib("emqttd/include/emqttd.hrl").
+
+-include_lib("emqttd/include/emqttd_protocol.hrl").
 
 -export([load/0, unload/0]).
 
 -export([on_client_connected/3]).
 
--define(APP, ?MODULE).
-
 %% Called when the plugin loaded
 load() ->
-    SuperCmd = application:get_env(?APP, supercmd, undefined),
+    {ok, SuperCmd} = gen_conf:value(?APP, supercmd),
     ok = emqttd_access_control:register_mod(
             auth, emqttd_auth_redis, {SuperCmd, env(authcmd), env(password_hash)}),
     ok = with_cmd_enabled(aclcmd, fun(AclCmd) ->
@@ -39,10 +38,10 @@ load() ->
             emqttd:hook('client.connected', fun ?MODULE:on_client_connected/3, [SubCmd])
         end).
 
-env(Key) -> {ok, Val} = application:get_env(?APP, Key), Val.
+env(Key) -> {ok, Val} = gen_conf:value(?APP, Key), Val.
 
 on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{client_pid = ClientPid}, SubCmd) ->
-    case emqttd_plugin_redis_client:query(SubCmd, Client) of
+    case emqttd_auth_redis_client:query(SubCmd, Client) of
         {ok, Values}   -> emqttd_client:subscribe(ClientPid, topics(Values));
         {error, Error} -> lager:error("Redis Error: ~p, Cmd: ~p", [Error, SubCmd])
     end,
@@ -59,7 +58,7 @@ unload() ->
         end).
 
 with_cmd_enabled(Name, Fun) ->
-    case application:get_env(?APP, Name) of
+    case gen_conf:value(?APP, Name) of
         {ok, Cmd} -> Fun(Cmd);
         undefined -> ok
     end.

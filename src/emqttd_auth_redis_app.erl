@@ -14,24 +14,21 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc emqttd redis plugin supervisor
--module(emqttd_plugin_redis_sup).
+-module(emqttd_auth_redis_app).
 
--behaviour(supervisor).
+-behaviour(application).
 
-%% API
--export([start_link/0]).
+-include("emqttd_auth_redis.hrl").
 
-%% Supervisor callbacks
--export([init/1]).
+%% Application callbacks
+-export([start/2, stop/1]).
 
--define(APP, emqttd_plugin_redis).
+start(_StartType, _StartArgs) ->
+    gen_conf:init(?APP),
+    {ok, Sup} = emqttd_auth_redis_sup:start_link(),
+    emqttd_plugin_redis:load(),
+    {ok, Sup}.
 
-start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
-
-init([]) ->
-    {ok, Env} = application:get_env(?APP, eredis_pool),
-    PoolSpec = ecpool:pool_spec(?APP, ?APP, emqttd_plugin_redis_client, Env),
-    {ok, { {one_for_all, 10, 100}, [PoolSpec]} }.
+stop(_State) ->
+    emqttd_plugin_redis:unload().
 
