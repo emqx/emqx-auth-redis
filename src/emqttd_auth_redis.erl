@@ -23,38 +23,33 @@
 
 -include_lib("emqttd/include/emqttd.hrl").
 
+-import(emqttd_auth_redis_client, [q/2, is_superuser/2]).
+
 -export([init/1, check/3, description/0]).
 
--record(state, {super_cmd, auth_cmd, hash_type}).
+-record(state, {auth_cmd, super_cmd, hash_type}).
 
 -define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
 
-init({SuperCmd, AuthCmd, HashType}) -> 
-    {ok, #state{super_cmd = SuperCmd, auth_cmd = AuthCmd, hash_type = HashType}}.
+init({AuthCmd, SuperCmd, HashType}) ->
+    {ok, #state{auth_cmd = AuthCmd, super_cmd = SuperCmd, hash_type = HashType}}.
 
-check(#mqtt_client{username = Username}, _Password, _State) when ?UNDEFINED(Username) ->
-    {error, username_undefined};
+check(#mqtt_client{username = Username}, Password, _State)
+    when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
+    {error, username_or_password_undefined};
 
-check(Client, Password, #state{super_cmd = SuperCmd}) when ?UNDEFINED(Password) ->
-    case emqttd_auth_redis_client:is_superuser(SuperCmd, Client) of
-        true  -> ok;
-        false -> {error, password_undefined}
-    end;
-
-check(Client, Password, #state{super_cmd = SuperCmd,
-                               auth_cmd  = AuthCmd,
+check(Client, Password, #state{auth_cmd  = AuthCmd,
+                               super_cmd = SuperCmd,
                                hash_type = HashType}) ->
-    case emqttd_auth_redis_client:is_superuser(SuperCmd, Client) of
-        false -> case emqttd_auth_redis_client:query(AuthCmd, Client) of
-                     {ok, undefined} ->
-                         {error, not_found};
-                     {ok, HashPass} ->
-                         check_pass(HashPass, Password, HashType);
-                     {error, Error} ->
-                         {error, Error}
-                 end;
-        true  -> ok
-    end.
+    Result = case q(AuthCmd, Client) of
+                {ok, undefined} ->
+                    {error, not_found};
+                {ok, HashPass} ->
+                    check_pass(HashPass, Password, HashType);
+                {error, Reason} ->
+                    {error, Reason}
+             end,
+    case Result of ok -> {ok, is_superuser(SuperCmd, Client)}; Error -> Error end.
 
 check_pass(PassHash, Password, HashType) ->
     case PassHash =:= hash(HashType, Password) of

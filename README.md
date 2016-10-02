@@ -31,24 +31,23 @@ File: etc/emqttd_auth_redis.conf
 
 %% Variables: %u = username, %c = clientid
 
-%% HMGET mqtt_user:%u is_superuser
-{supercmd, ["HGET", "mqtt_user:%u", "is_superuser"]}.
-
 %% HMGET mqtt_user:%u password
-{authcmd, ["HGET", "mqtt_user:%u", "password"]}.
+{authcmd, "HGET mqtt_user:%u password"}.
 
 %% Password hash algorithm: plain, md5, sha, sha256, pbkdf2?
 {password_hash, sha256}.
 
-%% SMEMBERS mqtt_acl:%u
-{aclcmd, ["SMEMBERS", "mqtt_acl:%u"]}.
+%% HMGET mqtt_user:%u is_superuser
+{supercmd, "HGET mqtt_user:%u is_superuser"}.
+
+%% HGETALL mqtt_acl:%u
+{aclcmd, "HGETALL mqtt_acl:%u"}.
 
 %% If no rules matched, return...
 {acl_nomatch, deny}.
 
 %% Load Subscriptions form Redis when client connected.
-{subcmd, ["HGETALL", "mqtt_subs:%u"]}.
-
+{subcmd, "HGETALL mqtt_sub:%u"}.
 ```
 
 Super User
@@ -67,16 +66,18 @@ Set a 'user' hash with 'password' field, for example:
 HSET mqtt_user:<username> password "passwd"
 ```
 
-ACL Rule Set
-------------
+ACL Rule Hash
+-------------
 
-The plugin uses a redis set to store ACL rules:
+The plugin uses a redis hash to store ACL rules:
 
 ```
-SADD mqtt_acl:<username> "publish topic1"
-SADD mqtt_acl:<username> "subscribe topic2"
-SADD mqtt_acl:<username> "pubsub topic3"
+HSET mqtt_acl:<username> topic1 1
+HSET mqtt_acl:<username> topic2 2
+HSET mqtt_acl:<username> topic3 3
 ```
+
+NOTE: 1: subscribe, 2: publish, 3: pubsub
 
 Subscription Hash
 -----------------
@@ -84,9 +85,9 @@ Subscription Hash
 The plugin could store the static subscriptions into a redis Hash:
 
 ```
-HSET mqtt_subs:<username> topic1 0
-HSET mqtt_subs:<username> topic2 1
-HSET mqtt_subs:<username> topic3 2
+HSET mqtt_sub:<username> topic1 0
+HSET mqtt_sub:<username> topic2 1
+HSET mqtt_sub:<username> topic3 2
 ```
 
 Load Plugin

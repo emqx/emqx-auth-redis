@@ -26,22 +26,23 @@
 
 -export([on_client_connected/3]).
 
-%% Called when the plugin loaded
+%% Called when the plugin is loaded
 load() ->
-    {ok, SuperCmd} = gen_conf:value(?APP, supercmd),
-    ok = emqttd_access_control:register_mod(
-            auth, emqttd_auth_redis, {SuperCmd, env(authcmd), env(password_hash)}),
-    ok = with_cmd_enabled(aclcmd, fun(AclCmd) ->
-            emqttd_access_control:register_mod(acl, emqttd_acl_redis, {SuperCmd, AclCmd, env(acl_nomatch)})
-        end),
-    ok = with_cmd_enabled(subcmd, fun(SubCmd) ->
-            emqttd:hook('client.connected', fun ?MODULE:on_client_connected/3, [SubCmd])
-        end).
-
-env(Key) -> {ok, Val} = gen_conf:value(?APP, Key), Val.
+    if_cmd_enabled(authcmd, fun(AuthCmd) ->
+        SuperCmd = gen_conf:value(?APP, supercmd, undefined),
+        {ok, PasswdHash} = gen_conf:value(?APP, password_hash),
+        emqttd_access_control:register_mod(auth, emqttd_auth_redis, {AuthCmd, SuperCmd, PasswdHash})
+    end),
+    if_cmd_enabled(aclcmd, fun(AclCmd) ->
+        {ok, NoMatch} = gen_conf:value(?APP, acl_nomatch),
+        emqttd_access_control:register_mod(acl, emqttd_acl_redis, {AclCmd, NoMatch})
+    end),
+    if_cmd_enabled(subcmd, fun(SubCmd) ->
+        emqttd:hook('client.connected', fun ?MODULE:on_client_connected/3, [SubCmd])
+    end).
 
 on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{client_pid = ClientPid}, SubCmd) ->
-    case emqttd_auth_redis_client:query(SubCmd, Client) of
+    case emqttd_auth_redis_client:q(SubCmd, Client) of
         {ok, Values}   -> emqttd_client:subscribe(ClientPid, topics(Values));
         {error, Error} -> lager:error("Redis Error: ~p, Cmd: ~p", [Error, SubCmd])
     end,
@@ -53,11 +54,9 @@ on_client_connected(_ConnAck, _Client, _LoadCmd) ->
 unload() ->
     emqttd:unhook('client.connected', fun ?MODULE:on_client_connected/3),
     emqttd_access_control:unregister_mod(auth, emqttd_auth_redis),
-    with_cmd_enabled(aclcmd, fun(_AclCmd) ->
-            emqttd_access_control:unregister_mod(acl, emqttd_acl_redis)
-        end).
+    emqttd_access_control:unregister_mod(acl, emqttd_acl_redis).
 
-with_cmd_enabled(Name, Fun) ->
+if_cmd_enabled(Name, Fun) ->
     case gen_conf:value(?APP, Name) of
         {ok, Cmd} -> Fun(Cmd);
         undefined -> ok
