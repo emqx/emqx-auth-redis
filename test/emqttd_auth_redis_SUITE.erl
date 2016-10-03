@@ -24,9 +24,9 @@
 
 -include("emqttd_auth_redis.hrl").
 
--define(INIT_ACL, [{"mqtt_acl:test1", "publish topic1"},
-                   {"mqtt_acl:test2", "subscribe topic2"},
-                   {"mqtt_acl:test3", "pubsub topic3"}]).
+-define(INIT_ACL, [{"mqtt_acl/:test1", ["topic1", "2"]},
+                   {"mqtt_acl/:test2", ["topic2", "1"]},
+                   {"mqtt_acl/:test3", ["topic3", "3"]}]).
 
 -define(INIT_AUTH, [{"mqtt_user:root", "is_superuser", "1"},
                     {"mqtt_user:user1", "password", "testpwd"}]).
@@ -36,8 +36,8 @@ all() ->
 
 groups() -> 
     [{emqttd_auth_redis, [sequence],
-     [check_acl,
-      check_auth]}].
+     [check_auth,
+      check_acl]}].
 
 init_per_suite(Config) ->
     DataDir = proplists:get_value(data_dir, Config),
@@ -58,7 +58,8 @@ end_per_suite(_Config) ->
 check_acl(Config) ->
     Connection = proplists:get_value(connection, Config),
     Keys = [Key || {Key, _Value} <- ?INIT_ACL],
-    [eredis:q(Connection, ["SADD", Key, Value]) || {Key, Value} <- ?INIT_ACL],
+    R = [eredis:q(Connection, ["HMSET", Hash | HashObj]) || {Hash, HashObj} <- ?INIT_ACL],
+    ct:log("R:~p", [R]),
     User1 = #mqtt_client{client_id = <<"client1">>, username = <<"test1">>},
     User2 = #mqtt_client{client_id = <<"client2">>, username = <<"test2">>},
     User3 = #mqtt_client{client_id = <<"client3">>, username = <<"test3">>},
@@ -83,12 +84,12 @@ check_auth(Config) ->
     User1 = #mqtt_client{client_id = <<"client1">>, username = <<"user1">>},
     User2 = #mqtt_client{client_id = <<"client2">>, username = <<"root">>},
     User3 = #mqtt_client{client_id = <<"client3">>},
-    ok = emqttd_access_control:auth(User1, <<"testpwd">>),
+    {ok, false} = emqttd_access_control:auth(User1, <<"testpwd">>),
     {error, _} = emqttd_access_control:auth(User1, <<"pwderror">>),
 
-    ok = emqttd_access_control:auth(User2, <<"pass">>),
-    ok = emqttd_access_control:auth(User2, <<>>),
-    {error, username_undefined} = emqttd_access_control:auth(User3, <<>>),
+    {error,not_found} = emqttd_access_control:auth(User2, <<"pass">>),
+    {error, username_or_password_undefined} = emqttd_access_control:auth(User2, <<>>),
+    {error, username_or_password_undefined} = emqttd_access_control:auth(User3, <<>>),
     eredis:q(Connection, ["DEL" | Keys]).
 
 
