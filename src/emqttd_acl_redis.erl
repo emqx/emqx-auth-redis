@@ -30,7 +30,7 @@ init({AclCmd, AclNomatch}) ->
     {ok, #state{acl_cmd = AclCmd, acl_nomatch = AclNomatch}}.
 
 check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
-    {error, bad_username};
+    ignore;
 
 check_acl({Client, PubSub, Topic}, #state{acl_cmd     = AclCmd,
                                           acl_nomatch = Default}) ->
@@ -41,7 +41,7 @@ check_acl({Client, PubSub, Topic}, #state{acl_cmd     = AclCmd,
                                 allow   -> allow;
                                 nomatch -> Default
                             end;
-        {error, Reason} -> lager:error("Redis Error: ~p", [Reason]), Default
+        {error, Reason} -> Default
     end.
 
 match(_Client, _PubSub, _Topic, []) ->
