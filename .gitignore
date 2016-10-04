@@ -1,4 +1,3 @@
-dddd/
 .rebar/
 .eunit/
 .erlang.mk/
@@ -12,4 +11,4 @@ ebin/
 *.beam
 *.plt
 erl_crash.dump
-
+.data

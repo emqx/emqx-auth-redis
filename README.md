@@ -1,8 +1,8 @@
 
-emqttd_auth_redis
-=================
+emq_auth_redis
+==============
 
-emqttd Redis Plugin
+*EMQ* Redis Authentication/ACL Plugin
 
 Build Plugin
 ------------
@@ -14,43 +14,40 @@ make && make tests
 Configure Plugin
 ----------------
 
-File: etc/emqttd_auth_redis.conf
+File: etc/emq_auth_redis.conf
 
-```erlang
-{redis_pool, [
-  %% pool options
-  {pool_size, 8},
-  {auto_reconnect, 2},
+```
+## Redis Server
+emq.auth.redis.server = 127.0.0.1:6379
 
-  %% redis options
-  {host, "127.0.0.1"},
-  {port, 6379},
-  {database, 0},
-  {password, ""}
-]}.
+## Redis Pool Size
+emq.auth.redis.pool = 8
 
-%% Variables: %u = username, %c = clientid
+## Redis Database
+emq.auth.redis.database = 0
 
-%% HMGET mqtt_user:%u password
-{authcmd, "HGET mqtt_user:%u password"}.
+## Redis Password
+## emq.auth.redis.password =
 
-%% Password hash algorithm: plain, md5, sha, sha256, pbkdf2?
-{password_hash, sha256}.
+## Variables: %u = username, %c = clientid
 
-%% HMGET mqtt_user:%u is_superuser
-{supercmd, "HGET mqtt_user:%u is_superuser"}.
+## Authentication Query Command
+emq.auth.redis.authcmd = HGET mqtt_user:%u password
 
-%% HGETALL mqtt_acl:%u
-{aclcmd, "HGETALL mqtt_acl:%u"}.
+## Password hash: plain, md5, sha, sha256, pbkdf2
+emq.auth.redis.passwd.hash = sha256
 
-%% If no rules matched, return...
-{acl_nomatch, deny}.
+## Superuser Query Command
+emq.auth.redis.supercmd = HGET mqtt_user:%u is_superuser
 
-%% Load Subscriptions form Redis when client connected.
-{subcmd, "HGETALL mqtt_sub:%u"}.
+## ACL Query Command
+emq.auth.redis.aclcmd = HGETALL mqtt_acl:%u
+
+## ACL nomatch
+emq.auth.redis.acl.nomatch = deny
 ```
 
-Super User
+SuperUser
 ----------
 
 ```
@@ -94,7 +91,7 @@ Load Plugin
 -----------
 
 ```
-./bin/emqttd_ctl plugins load emqttd_auth_redis
+./bin/emqttd_ctl plugins load emq_auth_redis
 ```
 
 Author
