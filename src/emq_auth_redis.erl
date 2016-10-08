@@ -18,7 +18,7 @@
 
 -behaviour(emqttd_auth_mod).
 
--include("emqttd_auth_redis.hrl").
+-include("emq_auth_redis.hrl").
 
 -include_lib("emqttd/include/emqttd.hrl").
 
