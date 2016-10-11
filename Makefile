@@ -22,4 +22,4 @@ include erlang.mk
 app:: rebar.config
 
 app.config::
-	cuttlefish -l info -e etc/ -c etc/emq_auth_redis.conf -i priv/emq_auth_redis.schema -d .data
+	cuttlefish -l info -e etc/ -c etc/emq_auth_redis.conf -i priv/emq_auth_redis.schema -d data

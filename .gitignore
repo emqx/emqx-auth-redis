@@ -11,4 +11,4 @@ ebin/
 *.beam
 *.plt
 erl_crash.dump
-.data
+data
