@@ -34,7 +34,7 @@
    {password, Passwd}]
 end}.
 
-{mapping, "auth.redis.authcmd", "emq_auth_redis.authcmd", [
+{mapping, "auth.redis.auth_cmd", "emq_auth_redis.auth_cmd", [
   {datatype, string}
 ]}.
 
@@ -43,11 +43,11 @@ end}.
   {datatype, {enum, [plain, md5, sha, sha256, pbkdf2]}}
 ]}.
 
-{mapping, "auth.redis.supercmd", "emq_auth_redis.supercmd", [
+{mapping, "auth.redis.super_cmd", "emq_auth_redis.super_cmd", [
   {datatype, string}
 ]}.
 
-{mapping, "auth.redis.aclcmd", "emq_auth_redis.aclcmd", [
+{mapping, "auth.redis.acl_cmd", "emq_auth_redis.acl_cmd", [
   {datatype, string}
 ]}.
 
