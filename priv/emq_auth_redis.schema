@@ -51,7 +51,7 @@ end}.
   {datatype, string}
 ]}.
 
-{mapping, "auth.redis.acl.nomatch", "emq_auth_redis.acl_nomatch", [
+{mapping, "auth.redis.acl_nomatch", "emq_auth_redis.acl_nomatch", [
   {default, deny},
   {datatype, {enum, [deny, allow]}}
 ]}.
