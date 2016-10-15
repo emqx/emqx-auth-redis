@@ -35,7 +35,7 @@ stop(_State) ->
 
 reg_authmod(AuthCmd) ->
     SuperCmd = application:get_env(?APP, super_cmd, undefined),
-    {ok, PasswdHash} = application:get_env(?APP, passwd_hash),
+    {ok, PasswdHash} = application:get_env(?APP, password_hash),
     emqttd_access_control:register_mod(auth, emq_auth_redis, {AuthCmd, SuperCmd, PasswdHash}).
 reg_aclmod(AclCmd) ->
     {ok, Nomatch} = application:get_env(?APP, acl_nomatch),
