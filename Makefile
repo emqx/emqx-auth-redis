@@ -11,7 +11,7 @@ BUILD_DEPS = emqttd
 dep_emqttd = git https://github.com/emqtt/emqttd emq30
 
 TEST_DEPS = cuttlefish
-dep_cuttlefish = git https://github.com/basho/cuttlefish master
+dep_cuttlefish = git https://github.com/emqtt/cuttlefish
 
 COVER = true
 
