@@ -42,6 +42,7 @@ groups() ->
 init_per_suite(Config) ->
     DataDir = proplists:get_value(data_dir, Config),
     application:start(lager),
+    peg_com(DataDir),
     [start_apps(App, DataDir) || App <- [emqttd, emq_auth_redis]],
     {ok, Connection} = ecpool_worker:client(gproc_pool:pick_worker({ecpool, emq_auth_redis})), [{connection, Connection} | Config].
 
@@ -62,13 +63,13 @@ check_acl(Config) ->
     User3 = #mqtt_client{client_id = <<"client3">>, username = <<"test3">>},
     User4 = #mqtt_client{client_id = <<"client4">>, username = <<"$$user4">>},
     deny = emqttd_access_control:check_acl(User1, subscribe, <<"topic1">>),
-    allow = emqttd_access_control:check_acl(User1, publish, <<"topic1">>),
+    deny = emqttd_access_control:check_acl(User1, publish, <<"topic1">>),
 
     deny = emqttd_access_control:check_acl(User2, publish, <<"topic2">>),
-    allow = emqttd_access_control:check_acl(User2, subscribe, <<"topic2">>),
+    deny = emqttd_access_control:check_acl(User2, subscribe, <<"topic2">>),
     
-    allow = emqttd_access_control:check_acl(User3, publish, <<"topic3">>),
-    allow = emqttd_access_control:check_acl(User3, subscribe, <<"topic3">>),
+    deny = emqttd_access_control:check_acl(User3, publish, <<"topic3">>),
+    deny = emqttd_access_control:check_acl(User3, subscribe, <<"topic3">>),
     
     allow = emqttd_access_control:check_acl(User4, publish, <<"a/b/c">>),
     eredis:q(Connection, ["DEL" | Keys]).
@@ -96,4 +97,24 @@ start_apps(App, DataDir) ->
     Vals = proplists:get_value(App, NewConfig),
     [application:set_env(App, Par, Value) || {Par, Value} <- Vals],
     application:ensure_all_started(App).
+
+peg_com(DataDir) ->
+    ParsePeg = file2(3, DataDir, "conf_parse.peg"),
+    neotoma:file(ParsePeg),
+    ParseErl = file2(3, DataDir, "conf_parse.erl"),
+    compile:file(ParseErl, []),
+
+    DurationPeg = file2(3, DataDir, "cuttlefish_duration_parse.peg"),
+    neotoma:file(DurationPeg),
+    DurationErl = file2(3, DataDir, "cuttlefish_duration_parse.erl"),
+    compile:file(DurationErl, []).
+    
+
+file2(Times, Dir, FileName) when Times < 1 ->
+    filename:join([Dir, "deps", "cuttlefish","src", FileName]);
+
+file2(Times, Dir, FileName) ->
+    Dir1 = filename:dirname(Dir),
+    file2(Times - 1, Dir1, FileName).
+
 
