@@ -1,0 +1,58 @@
+%%-*- mode: erlang -*-
+%% emq_auth_redis config mapping
+{mapping, "auth.redis.server", "emq_auth_redis.server", [
+  {default, {"127.0.0.1", 6379}},
+  {datatype, [integer, ip]}
+]}.
+
+{mapping, "auth.redis.pool", "emq_auth_redis.server", [
+  {default, 8},
+  {datatype, integer}
+]}.
+
+{mapping, "auth.redis.database", "emq_auth_redis.server", [
+  {default, 0},
+  {datatype, integer}
+]}.
+
+{mapping, "auth.redis.password", "emq_auth_redis.server", [
+  {default, ""},
+  {datatype, string},
+  hidden
+]}.
+
+{translation, "emq_auth_redis.server", fun(Conf) ->
+  {Host, Port} = cuttlefish:conf_get("auth.redis.server", Conf),
+  Pool = cuttlefish:conf_get("auth.redis.pool", Conf),
+  Passwd = cuttlefish:conf_get("auth.redis.password", Conf),
+  DB = cuttlefish:conf_get("auth.redis.database", Conf),
+  [{pool_size, Pool},
+   {auto_reconnect, 1},
+   {host, Host},
+   {port, Port},
+   {database, DB},
+   {password, Passwd}]
+end}.
+
+{mapping, "auth.redis.auth_cmd", "emq_auth_redis.auth_cmd", [
+  {datatype, string}
+]}.
+
+{mapping, "auth.redis.password_hash", "emq_auth_redis.password_hash", [
+  {default, sha256},
+  {datatype, {enum, [plain, md5, sha, sha256, pbkdf2]}}
+]}.
+
+{mapping, "auth.redis.super_cmd", "emq_auth_redis.super_cmd", [
+  {datatype, string}
+]}.
+
+{mapping, "auth.redis.acl_cmd", "emq_auth_redis.acl_cmd", [
+  {datatype, string}
+]}.
+
+{mapping, "auth.redis.acl_nomatch", "emq_auth_redis.acl_nomatch", [
+  {default, deny},
+  {datatype, {enum, [deny, allow]}}
+]}.
+
