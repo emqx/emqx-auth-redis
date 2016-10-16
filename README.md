@@ -2,7 +2,7 @@
 emq_auth_redis
 ==============
 
-Redis Authentication/ACL Plugin for *EMQ* 3.0
+Redis Authentication/ACL Plugin
 
 Build Plugin
 ------------
