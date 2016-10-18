@@ -8,7 +8,7 @@ dep_eredis = git https://github.com/wooga/eredis master
 dep_ecpool = git https://github.com/emqtt/ecpool master
 
 BUILD_DEPS = emqttd
-dep_emqttd = git https://github.com/emqtt/emqttd emq20
+dep_emqttd = git https://github.com/emqtt/emqttd master
 
 TEST_DEPS = cuttlefish
 dep_cuttlefish = git https://github.com/emqtt/cuttlefish
