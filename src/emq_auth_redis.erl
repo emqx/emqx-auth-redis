@@ -14,22 +14,19 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc Authentication with Redis.
--module(emqttd_auth_redis).
+-module(emq_auth_redis).
 
 -behaviour(emqttd_auth_mod).
 
--include("emqttd_auth_redis.hrl").
+-include("emq_auth_redis.hrl").
 
 -include_lib("emqttd/include/emqttd.hrl").
 
--import(emqttd_auth_redis_client, [q/2, is_superuser/2]).
-
 -export([init/1, check/3, description/0]).
 
--record(state, {auth_cmd, super_cmd, hash_type}).
+-define(UNDEFINED(S), (S =:= undefined)).
 
--define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
+-record(state, {auth_cmd, super_cmd, hash_type}).
 
 init({AuthCmd, SuperCmd, HashType}) ->
     {ok, #state{auth_cmd = AuthCmd, super_cmd = SuperCmd, hash_type = HashType}}.
@@ -41,7 +38,7 @@ check(#mqtt_client{username = Username}, Password, _State)
 check(Client, Password, #state{auth_cmd  = AuthCmd,
                                super_cmd = SuperCmd,
                                hash_type = HashType}) ->
-    Result = case q(AuthCmd, Client) of
+    Result = case emq_auth_redis_cli:q(AuthCmd, Client) of
                 {ok, undefined} ->
                     {error, not_found};
                 {ok, HashPass} ->
@@ -52,13 +49,21 @@ check(Client, Password, #state{auth_cmd  = AuthCmd,
     case Result of ok -> {ok, is_superuser(SuperCmd, Client)}; Error -> Error end.
 
 check_pass(PassHash, Password, HashType) ->
-    case PassHash =:= hash(HashType, Password) of
-        true  -> ok;
-        false -> {error, password_error}
+    case emqttd_auth_mod:passwd_hash(HashType, Password) of
+        PassHash -> ok;
+        _ErrHash -> {error, password_error}
     end.
 
-hash(Type, Password) ->
-    emqttd_auth_mod:passwd_hash(Type, Password).
-
 description() -> "Authentication with Redis".
+
+-spec(is_superuser(undefined | list(), mqtt_client()) -> boolean()).
+is_superuser(undefined, _Client) ->
+    false;
+is_superuser(SuperCmd, Client) ->
+    case emq_auth_redis_cli:q(SuperCmd, Client) of
+        {ok, undefined} -> false;
+        {ok, <<"1">>}   -> true;
+        {ok, _Other}    -> false;
+        {error, _Error} -> false
+    end.
 

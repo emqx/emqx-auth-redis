@@ -14,21 +14,36 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emqttd_auth_redis_app).
+-module(emq_auth_redis_app).
 
 -behaviour(application).
 
--include("emqttd_auth_redis.hrl").
+-include("emq_auth_redis.hrl").
 
-%% Application callbacks
 -export([start/2, stop/1]).
 
 start(_StartType, _StartArgs) ->
-    gen_conf:init(?APP),
-    {ok, Sup} = emqttd_auth_redis_sup:start_link(),
-    emqttd_plugin_redis:load(),
+    {ok, Sup} = emq_auth_redis_sup:start_link(),
+    if_cmd_enabled(auth_cmd, fun reg_authmod/1),
+    if_cmd_enabled(acl_cmd,  fun reg_aclmod/1),
     {ok, Sup}.
 
 stop(_State) ->
+    emqttd_access_control:unregister_mod(auth, emq_auth_redis),
+    emqttd_access_control:unregister_mod(acl, emq_acl_redis),
     emqttd_plugin_redis:unload().
+
+reg_authmod(AuthCmd) ->
+    SuperCmd = application:get_env(?APP, super_cmd, undefined),
+    {ok, PasswdHash} = application:get_env(?APP, password_hash),
+    emqttd_access_control:register_mod(auth, emq_auth_redis, {AuthCmd, SuperCmd, PasswdHash}).
+reg_aclmod(AclCmd) ->
+    {ok, Nomatch} = application:get_env(?APP, acl_nomatch),
+    emqttd_access_control:register_mod(acl, emq_acl_redis, {AclCmd, Nomatch}).
+
+if_cmd_enabled(Par, Fun) ->
+    case application:get_env(?APP, Par) of
+        {ok, Cmd} -> Fun(Cmd);
+        undefined -> ok
+    end.
 

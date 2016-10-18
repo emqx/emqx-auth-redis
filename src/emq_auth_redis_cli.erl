@@ -14,42 +14,27 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emqttd_auth_redis_client).
+-module(emq_auth_redis_cli).
 
 -behaviour(ecpool_worker).
 
--include("emqttd_auth_redis.hrl").
+-include("emq_auth_redis.hrl").
 
 -include_lib("emqttd/include/emqttd.hrl").
 
--import(proplists, [get_value/2]).
+-define(ENV(Key, Opts), proplists:get_value(Key, Opts)).
 
--export([is_superuser/2, connect/1, q/2]).
-
-%%--------------------------------------------------------------------
-%% Is Superuser?
-%%--------------------------------------------------------------------
-
--spec(is_superuser(undefined | list(), mqtt_client()) -> boolean()).
-is_superuser(undefined, _Client) ->
-    false;
-is_superuser(SuperCmd, Client) ->
-    case q(SuperCmd, Client) of
-        {ok, undefined} -> false;
-        {ok, <<"1">>}   -> true;
-        {ok, _Other}    -> false;
-        {error, _Error} -> false
-    end.
+-export([connect/1, q/2]).
 
 %%--------------------------------------------------------------------
 %% Redis Connect/Query
 %%--------------------------------------------------------------------
 
 connect(Opts) ->
-    eredis:start_link(get_value(host, Opts),
-                      get_value(port, Opts),
-                      get_value(database, Opts),
-                      get_value(password, Opts),
+    eredis:start_link(?ENV(host, Opts),
+                      ?ENV(port, Opts),
+                      ?ENV(database, Opts),
+                      ?ENV(password, Opts),
                       no_reconnect).
 
 %% Redis Query.

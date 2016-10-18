@@ -1,8 +1,8 @@
 
-emqttd_auth_redis
-=================
+emq_auth_redis
+==============
 
-emqttd Redis Plugin
+Redis Authentication/ACL Plugin
 
 Build Plugin
 ------------
@@ -14,44 +14,42 @@ make && make tests
 Configure Plugin
 ----------------
 
-File: etc/emqttd_auth_redis.conf
+File: etc/emq_auth_redis.conf
 
-```erlang
-{redis_pool, [
-  %% pool options
-  {pool_size, 8},
-  {auto_reconnect, 2},
+```
+## Redis Server
+auth.redis.server = 127.0.0.1:6379
 
-  %% redis options
-  {host, "127.0.0.1"},
-  {port, 6379},
-  {database, 0},
-  {password, ""}
-]}.
+## Redis Pool Size
+auth.redis.pool = 8
 
-%% Variables: %u = username, %c = clientid
+## Redis Database
+auth.redis.database = 0
 
-%% HMGET mqtt_user:%u password
-{authcmd, "HGET mqtt_user:%u password"}.
+## Redis Password
+## auth.redis.password =
 
-%% Password hash algorithm: plain, md5, sha, sha256, pbkdf2?
-{password_hash, sha256}.
+## Variables: %u = username, %c = clientid
 
-%% HMGET mqtt_user:%u is_superuser
-{supercmd, "HGET mqtt_user:%u is_superuser"}.
+## Authentication Query Command
+auth.redis.auth_cmd = HGET mqtt_user:%u password
 
-%% HGETALL mqtt_acl:%u
-{aclcmd, "HGETALL mqtt_acl:%u"}.
+## Password hash: plain, md5, sha, sha256, pbkdf2
+auth.redis.passwd.hash = sha256
 
-%% If no rules matched, return...
-{acl_nomatch, deny}.
+## Superuser Query Command
+auth.redis.super_cmd = HGET mqtt_user:%u is_superuser
 
-%% Load Subscriptions form Redis when client connected.
-{subcmd, "HGETALL mqtt_sub:%u"}.
+## ACL Query Command
+auth.redis.acl_cmd = HGETALL mqtt_acl:%u
+
+## ACL nomatch
+auth.redis.acl_nomatch = deny
+
 ```
 
-Super User
-----------
+SuperUser
+---------
 
 ```
 HSET mqtt_user:<username> is_superuser 1
@@ -82,6 +80,8 @@ NOTE: 1: subscribe, 2: publish, 3: pubsub
 Subscription Hash
 -----------------
 
+NOTICE: Move to emq_backend_redis...
+
 The plugin could store the static subscriptions into a redis Hash:
 
 ```
@@ -94,7 +94,7 @@ Load Plugin
 -----------
 
 ```
-./bin/emqttd_ctl plugins load emqttd_auth_redis
+./bin/emqttd_ctl plugins load emq_auth_redis
 ```
 
 Author

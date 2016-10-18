@@ -14,8 +14,7 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc ACL with Redis.
--module(emqttd_acl_redis).
+-module(emq_acl_redis).
 
 -behaviour(emqttd_acl_mod).
 
@@ -35,7 +34,7 @@ check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) 
 check_acl({Client, PubSub, Topic}, #state{acl_cmd     = AclCmd,
                                           acl_nomatch = Default}) ->
 
-    case emqttd_auth_redis_client:q(AclCmd, Client) of
+    case emq_auth_redis_cli:q(AclCmd, Client) of
         {ok, []}         -> Default;
         {ok, Rules}      -> case match(Client, PubSub, Topic, Rules) of
                                 allow   -> allow;

@@ -14,23 +14,21 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emqttd_auth_redis_sup).
+-module(emq_auth_redis_sup).
 
 -behaviour(supervisor).
 
--include("emqttd_auth_redis.hrl").
+-include("emq_auth_redis.hrl").
 
-%% API
 -export([start_link/0]).
 
-%% Supervisor callbacks
 -export([init/1]).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-    {ok, PoolEnv} = gen_conf:value(?APP, redis_pool),
-    PoolSpec = ecpool:pool_spec(?APP, ?APP, emqttd_auth_redis_client, PoolEnv),
+    {ok, Server} = application:get_env(?APP, server),
+    PoolSpec = ecpool:pool_spec(?APP, ?APP, emq_auth_redis_cli, Server),
     {ok, {{one_for_one, 10, 100}, [PoolSpec]}}.
 
