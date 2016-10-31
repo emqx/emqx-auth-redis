@@ -40,7 +40,7 @@ check_acl({Client, PubSub, Topic}, #state{acl_cmd     = AclCmd,
                                 allow   -> allow;
                                 nomatch -> Default
                             end;
-        {error, Reason} -> Default
+        {error, Reason} -> io:format("Redis check acl fail:~p~n", [Reason]), Default
     end.
 
 match(_Client, _PubSub, _Topic, []) ->
