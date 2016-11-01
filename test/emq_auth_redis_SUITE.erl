@@ -24,9 +24,9 @@
 
 -include("emq_auth_redis.hrl").
 
--define(INIT_ACL, [{"mqtt_acl/:test1", ["topic1", "2"]},
-                   {"mqtt_acl/:test2", ["topic2", "1"]},
-                   {"mqtt_acl/:test3", ["topic3", "3"]}]).
+-define(INIT_ACL, [{"mqtt_acl:test1", "topic1", "2"},
+                   {"mqtt_acl:test2", "topic2", "1"},
+                   {"mqtt_acl:test3", "topic3", "3"}]).
 
 -define(INIT_AUTH, [{"mqtt_user:root", "is_superuser", "1"},
                     {"mqtt_user:user1", "password", "testpwd"}]).
@@ -56,7 +56,7 @@ end_per_suite(_Config) ->
 check_acl(Config) ->
     Connection = proplists:get_value(connection, Config),
     Keys = [Key || {Key, _Value} <- ?INIT_ACL],
-    R = [eredis:q(Connection, ["HMSET", Hash | HashObj]) || {Hash, HashObj} <- ?INIT_ACL],
+    [eredis:q(Connection, ["HSET", Key, Filed, Value]) || {Key, Filed, Value} <- ?INIT_ACL],
     User1 = #mqtt_client{client_id = <<"client1">>, username = <<"test1">>},
     User2 = #mqtt_client{client_id = <<"client2">>, username = <<"test2">>},
     User3 = #mqtt_client{client_id = <<"client3">>, username = <<"test3">>},
@@ -77,7 +77,6 @@ check_auth(Config) ->
     Connection = proplists:get_value(connection, Config),
     Keys = [Key || {Key, _Filed, _Value} <- ?INIT_AUTH],
     [eredis:q(Connection, ["HSET", Key, Filed, Value]) || {Key, Filed, Value} <- ?INIT_AUTH],
-
     User1 = #mqtt_client{client_id = <<"client1">>, username = <<"user1">>},
     User2 = #mqtt_client{client_id = <<"client2">>, username = <<"root">>},
     User3 = #mqtt_client{client_id = <<"client3">>},
