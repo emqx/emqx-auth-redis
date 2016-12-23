@@ -12,3 +12,4 @@ ebin/
 *.plt
 erl_crash.dump
 data
+emq_auth_redis.d
