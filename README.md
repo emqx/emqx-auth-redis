@@ -31,14 +31,29 @@ auth.redis.database = 0
 
 ## Variables: %u = username, %c = clientid
 
-## Authentication Query Command
-auth.redis.auth_cmd = HGET mqtt_user:%u password
+## Authentication Query Command: password or password salt
+auth.redis.auth_cmd = HMGET mqtt_user:%u password
 
 ## Password hash: plain, md5, sha, sha256, pbkdf2
 auth.redis.passwd.hash = sha256
 
 ## Superuser Query Command
 auth.redis.super_cmd = HGET mqtt_user:%u is_superuser
+
+## sha256 with salt prefix
+## auth.redis.password_hash = salt sha256
+
+## sha256 with salt suffix
+## auth.redis.password_hash = sha256 salt
+
+## pbkdf2 with macfun: md4, md5, ripemd160, sha, sha224, sha256, sha384, sha512
+## auth.redis.pbkdf2_macfun = sha256
+
+## pbkdf2 with iterations
+## auth.redis.pbkdf2_iterations = 4096
+
+## pbkdf2 with dklen
+## auth.redis.pbkdf2_dklen = 20
 
 ## ACL Query Command
 auth.redis.acl_cmd = HGETALL mqtt_acl:%u
