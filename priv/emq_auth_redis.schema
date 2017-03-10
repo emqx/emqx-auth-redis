@@ -49,18 +49,6 @@ end}.
   {datatype, string}
 ]}.
 
-{mapping, "auth.redis.pbkdf2_macfun", "emq_auth_redis.pbkdf2_macfun", [
-  {datatype, atom}
-]}.
-
-{mapping, "auth.redis.pbkdf2_iterations", "emq_auth_redis.pbkdf2_iterations", [
-  {datatype, integer}
-]}.
-
-{mapping, "auth.redis.pbkdf2_dklen", "emq_auth_redis.pbkdf2_dklen", [
-  {datatype, integer}
-]}.
-
 {mapping, "auth.redis.super_cmd", "emq_auth_redis.super_cmd", [
   {datatype, string}
 ]}.
@@ -79,6 +67,7 @@ end}.
   case string:tokens(HashValue, " ") of
     [Hash]           -> list_to_atom(Hash);
     [Prefix, Suffix] -> {list_to_atom(Prefix), list_to_atom(Suffix)};
+    [Hash, MacFun, Iterations, Dklen] -> {list_to_atom(Hash), list_to_atom(MacFun), list_to_integer(Iterations), list_to_integer(Dklen)};
     _                -> plain
   end
 end}.
