@@ -32,10 +32,21 @@ auth.redis.database = 0
 ## Variables: %u = username, %c = clientid
 
 ## Authentication Query Command
-auth.redis.auth_cmd = HGET mqtt_user:%u password
+## HMGET mqtt_user:%u password or HMGET mqtt_user:%u password salt
+auth.redis.auth_cmd = HMGET mqtt_user:%u password
 
-## Password hash: plain, md5, sha, sha256, pbkdf2
-auth.redis.passwd.hash = sha256
+## Password hash: plain, md5, sha, sha256
+auth.redis.password_hash = plain
+
+## sha256 with salt prefix
+## auth.redis.password_hash = salt sha256
+
+## sha256 with salt suffix
+## auth.redis.password_hash = sha256 salt
+
+## pbkdf2 with macfun iterations dklen
+## macfun: md4, md5, ripemd160, sha, sha224, sha256, sha384, sha512
+## auth.redis.password_hash = pbkdf2 sha256 1000 20
 
 ## Superuser Query Command
 auth.redis.super_cmd = HGET mqtt_user:%u is_superuser
@@ -58,10 +69,10 @@ HSET mqtt_user:<username> is_superuser 1
 User Hash with Password
 -----------------------
 
-Set a 'user' hash with 'password' field, for example:
+Set a 'user' hash with 'password' 'salt' field, for example:
 
 ```
-HSET mqtt_user:<username> password "passwd"
+HMSET mqtt_user:<username> password "passwd" salt "salt"
 ```
 
 ACL Rule Hash
