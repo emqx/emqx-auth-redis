@@ -53,10 +53,6 @@ auth.redis.super_cmd = HGET mqtt_user:%u is_superuser
 
 ## ACL Query Command
 auth.redis.acl_cmd = HGETALL mqtt_acl:%u
-
-## ACL nomatch
-auth.redis.acl_nomatch = deny
-
 ```
 
 SuperUser

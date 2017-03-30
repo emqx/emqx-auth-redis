@@ -23,24 +23,22 @@
 %% ACL callbacks
 -export([init/1, check_acl/2, reload_acl/1, description/0]).
 
--record(state, {acl_cmd, acl_nomatch}).
+-record(state, {acl_cmd}).
 
-init({AclCmd, AclNomatch}) ->
-    {ok, #state{acl_cmd = AclCmd, acl_nomatch = AclNomatch}}.
+init(AclCmd) ->
+    {ok, #state{acl_cmd = AclCmd}}.
 
 check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
     ignore;
 
-check_acl({Client, PubSub, Topic}, #state{acl_cmd     = AclCmd,
-                                          acl_nomatch = Default}) ->
-
+check_acl({Client, PubSub, Topic}, #state{acl_cmd     = AclCmd}) ->
     case emq_auth_redis_cli:q(AclCmd, Client) of
-        {ok, []}         -> Default;
+        {ok, []}         -> ignore;
         {ok, Rules}      -> case match(Client, PubSub, Topic, Rules) of
                                 allow   -> allow;
-                                nomatch -> Default
+                                nomatch -> deny
                             end;
-        {error, Reason} -> lager:error("Redis check_acl error: ~p~n", [Reason]), Default
+        {error, Reason} -> lager:error("Redis check_acl error: ~p~n", [Reason]), deny
     end.
 
 match(_Client, _PubSub, _Topic, []) ->
