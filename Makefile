@@ -1,6 +1,6 @@
 PROJECT = emq_auth_redis
 PROJECT_DESCRIPTION = Authentication/ACL with Redis
-PROJECT_VERSION = 2.1.2
+PROJECT_VERSION = 2.2
 
 DEPS = eredis ecpool
 
@@ -8,7 +8,7 @@ dep_eredis = git https://github.com/wooga/eredis master
 dep_ecpool = git https://github.com/emqtt/ecpool master
 
 BUILD_DEPS = emqttd cuttlefish
-dep_emqttd = git https://github.com/emqtt/emqttd develop
+dep_emqttd = git https://github.com/emqtt/emqttd emq22
 dep_cuttlefish = git https://github.com/emqtt/cuttlefish
 
 NO_AUTOPATCH = cuttlefish

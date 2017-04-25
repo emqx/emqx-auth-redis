@@ -38,8 +38,7 @@ reg_authmod(AuthCmd) ->
     {ok, PasswdHash} = application:get_env(?APP, password_hash),
     emqttd_access_control:register_mod(auth, emq_auth_redis, {AuthCmd, SuperCmd, PasswdHash}).
 reg_aclmod(AclCmd) ->
-    {ok, Nomatch} = application:get_env(?APP, acl_nomatch),
-    emqttd_access_control:register_mod(acl, emq_acl_redis, {AclCmd, Nomatch}).
+    emqttd_access_control:register_mod(acl, emq_acl_redis, AclCmd).
 
 if_cmd_enabled(Par, Fun) ->
     case application:get_env(?APP, Par) of

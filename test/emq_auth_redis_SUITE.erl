@@ -28,8 +28,8 @@
                    {"mqtt_acl:test2", "topic2", "1"},
                    {"mqtt_acl:test3", "topic3", "3"}]).
 
--define(INIT_AUTH, [{"mqtt_user:root", "is_superuser", "1"},
-                    {"mqtt_user:user1", "password", "testpwd"}]).
+-define(INIT_AUTH, [{"mqtt_user:root", ["password", "3ef26c7a285bbfdebd8ebe895dbada207d926c15", "salt", "salt", "is_superuser", "1"]},
+                    {"mqtt_user:user1", ["password", "b95de58f7646da3b2de64466b3429244885addac", "salt", "salt", "is_superuser", "0"]}]).
 
 all() -> 
     [{group, emq_auth_redis}].
@@ -75,15 +75,16 @@ check_acl(Config) ->
 check_auth(Config) ->
     Connection = proplists:get_value(connection, Config),
     Keys = [Key || {Key, _Filed, _Value} <- ?INIT_AUTH],
-    [eredis:q(Connection, ["HSET", Key, Filed, Value]) || {Key, Filed, Value} <- ?INIT_AUTH],
+    [eredis:q(Connection, ["HMSET", Key|FiledValue]) || {Key, FiledValue} <- ?INIT_AUTH],
     User1 = #mqtt_client{client_id = <<"client1">>, username = <<"user1">>},
     User2 = #mqtt_client{client_id = <<"client2">>, username = <<"root">>},
     User3 = #mqtt_client{client_id = <<"client3">>},
-    {ok, false} = emqttd_access_control:auth(User1, <<"testpwd">>),
+    {ok, false} = emqttd_access_control:auth(User1, <<"test">>),
     {error, _} = emqttd_access_control:auth(User1, <<"pwderror">>),
 
-    {error, not_found} = emqttd_access_control:auth(User2, <<"pass">>),
-    {error, not_found} = emqttd_access_control:auth(User2, <<>>),
+    {ok, true} = emqttd_access_control:auth(User2, <<"test1">>),
+    {error, _} = emqttd_access_control:auth(User2, <<"pass">>),
+    {error, _} = emqttd_access_control:auth(User2, <<>>),
     {error, username_or_password_undefined} = emqttd_access_control:auth(User3, <<>>),
     eredis:q(Connection, ["DEL" | Keys]).
 
