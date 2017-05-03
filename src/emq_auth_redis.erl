@@ -39,7 +39,7 @@ check(Client, Password, #state{auth_cmd  = AuthCmd,
                                super_cmd = SuperCmd,
                                hash_type = HashType}) ->
     Result = case emq_auth_redis_cli:q(AuthCmd, Client) of
-                {ok, [undefined]} ->
+                {ok, [undefined|_]} ->
                     ignore;
                 {ok, [PassHash]} ->
                     check_pass(PassHash, Password, HashType);   
