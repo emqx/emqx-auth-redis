@@ -13,3 +13,6 @@ ebin/
 erl_crash.dump
 data
 emq_auth_redis.d
+.DS_Store
+cover/
+eunit.coverdata
