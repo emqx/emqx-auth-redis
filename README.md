@@ -35,7 +35,7 @@ auth.redis.database = 0
 ## HMGET mqtt_user:%u password or HMGET mqtt_user:%u password salt
 auth.redis.auth_cmd = HMGET mqtt_user:%u password
 
-## Password hash: plain, md5, sha, sha256
+## Password hash: plain, md5, sha, sha256, bcrypt
 auth.redis.password_hash = plain
 
 ## sha256 with salt prefix
@@ -43,6 +43,9 @@ auth.redis.password_hash = plain
 
 ## sha256 with salt suffix
 ## auth.redis.password_hash = sha256 salt
+
+## bcrypt with salt prefix
+## auth.redis.password_hash = salt bcrypt
 
 ## pbkdf2 with macfun iterations dklen
 ## macfun: md4, md5, ripemd160, sha, sha224, sha256, sha384, sha512
@@ -53,10 +56,6 @@ auth.redis.super_cmd = HGET mqtt_user:%u is_superuser
 
 ## ACL Query Command
 auth.redis.acl_cmd = HGETALL mqtt_acl:%u
-
-## ACL nomatch
-auth.redis.acl_nomatch = deny
-
 ```
 
 SuperUser

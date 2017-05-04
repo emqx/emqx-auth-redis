@@ -39,8 +39,8 @@ check(Client, Password, #state{auth_cmd  = AuthCmd,
                                super_cmd = SuperCmd,
                                hash_type = HashType}) ->
     Result = case emq_auth_redis_cli:q(AuthCmd, Client) of
-                {ok, [undefined]} ->
-                    {error, not_found};
+                {ok, [undefined|_]} ->
+                    ignore;
                 {ok, [PassHash]} ->
                     check_pass(PassHash, Password, HashType);   
                 {ok, [PassHash,Salt|_]} ->
@@ -54,6 +54,8 @@ check_pass(PassHash, Password, HashType) ->
     check_pass(PassHash, hash(HashType, Password)).
 check_pass(PassHash, Salt, Password, {pbkdf2, Macfun, Iterations, Dklen}) ->
   check_pass(PassHash,hash(pbkdf2,{Salt,Password, Macfun, Iterations, Dklen}));
+check_pass(PassHash, Salt, Password, {salt, bcrypt}) ->
+    check_pass(PassHash, hash(bcrypt, {Salt, Password}));
 check_pass(PassHash, Salt, Password, {salt, HashType}) ->
     check_pass(PassHash, hash(HashType, <<Salt/binary, Password/binary>>));
 check_pass(PassHash, Salt, Password, {HashType, salt}) ->
