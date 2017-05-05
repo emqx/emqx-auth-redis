@@ -38,7 +38,7 @@ check_acl({Client, PubSub, Topic}, #state{acl_cmd     = AclCmd}) ->
                                 allow   -> allow;
                                 nomatch -> deny
                             end;
-        {error, Reason} -> lager:error("Redis check_acl error: ~p~n", [Reason]), deny
+        {error, Reason} -> lager:error("Redis check_acl error: ~p~n", [Reason]), ignore
     end.
 
 match(_Client, _PubSub, _Topic, []) ->
