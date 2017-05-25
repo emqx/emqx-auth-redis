@@ -47,7 +47,7 @@ all() ->
 
 groups() -> 
     [{emq_auth_redis_auth, [sequence],
-     [check_auth, list_auth]},
+     [check_auth, list_auth, check_auth_hget]},
     {emq_auth_redis_acl, [sequence],
      [check_acl, acl_super]},
     {emq_auth_redis, [sequence],
@@ -55,7 +55,8 @@ groups() ->
 
 init_per_suite(Config) ->
     DataDir = proplists:get_value(data_dir, Config),
-    [start_apps(App, DataDir) || App <- [emqttd, emq_auth_redis]],
+    Apps = [start_apps(App, DataDir) || App <- [emqttd, emq_auth_redis]],
+    ct:log("Apps:~p", [Apps]),
     Config.
 
 end_per_suite(Config) ->
@@ -104,6 +105,14 @@ list_auth(_Config) ->
     {ok, true} = emqttd_access_control:auth(Plain, <<"plain">>),
     Stop = application:stop(emq_auth_username),
     ct:log("Stop:~p~n", [Stop]).
+
+check_auth_hget(Config) ->
+    {ok, Connection} = ?POOL(?APP), 
+    eredis:q(Connection, ["HSET", "mqtt_user:hset", "password", "hset"]),
+    eredis:q(Connection, ["HSET", "mqtt_user:hset", "is_superuser", "1"]),
+    reload([{password_hash, plain}, {auth_cmd, "HGET mqtt_user:%u password"}]),
+    Hset = #mqtt_client{client_id = <<"hset">>, username = <<"hset">>},
+    {ok, true} = emqttd_access_control:auth(Hset, <<"hset">>).
 
 check_acl(Config) ->
     {ok, Connection} = ?POOL(?APP), 
