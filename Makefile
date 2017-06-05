@@ -20,9 +20,9 @@ dep_emq_auth_username = git https://github.com/emqtt/emq-auth-username
 TEST_ERLC_OPTS += +debug_info
 TEST_ERLC_OPTS += +'{parse_transform, lager_transform}'
 
-
 COVER = true
 
+ERLC_OPTS += +debug_info
 ERLC_OPTS += +'{parse_transform, lager_transform}'
 
 include erlang.mk
