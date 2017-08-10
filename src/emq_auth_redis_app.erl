@@ -26,12 +26,13 @@ start(_StartType, _StartArgs) ->
     {ok, Sup} = emq_auth_redis_sup:start_link(),
     if_cmd_enabled(auth_cmd, fun reg_authmod/1),
     if_cmd_enabled(acl_cmd,  fun reg_aclmod/1),
+    emq_auth_redis_config:register(),
     {ok, Sup}.
 
 stop(_State) ->
     emqttd_access_control:unregister_mod(auth, emq_auth_redis),
     emqttd_access_control:unregister_mod(acl, emq_acl_redis),
-    emqttd_plugin_redis:unload().
+    emq_auth_redis_config:unregister().
 
 reg_authmod(AuthCmd) ->
     SuperCmd = application:get_env(?APP, super_cmd, undefined),
