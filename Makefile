@@ -2,10 +2,11 @@ PROJECT = emq_auth_redis
 PROJECT_DESCRIPTION = Authentication/ACL with Redis
 PROJECT_VERSION = 2.3
 
-DEPS = eredis ecpool
+DEPS = eredis ecpool clique
 
 dep_eredis = git https://github.com/wooga/eredis master
 dep_ecpool = git https://github.com/emqtt/ecpool master
+dep_clique = git https://github.com/emqtt/clique
 
 BUILD_DEPS = emqttd cuttlefish
 dep_emqttd = git https://github.com/emqtt/emqttd emq24
