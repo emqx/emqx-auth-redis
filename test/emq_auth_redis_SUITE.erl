@@ -42,7 +42,8 @@
 all() -> 
     [{group, emq_auth_redis_auth},
      {group, emq_auth_redis_acl},
-     {group, emq_auth_redis}
+     {group, emq_auth_redis},
+     {group, auth_redis_config}
     ].
 
 groups() -> 
@@ -51,7 +52,9 @@ groups() ->
     {emq_auth_redis_acl, [sequence],
      [check_acl, acl_super]},
     {emq_auth_redis, [sequence],
-     [comment_config]}].
+     [comment_config]},
+     {auth_redis_config, [sequence], [server_config]}
+].
 
 init_per_suite(Config) ->
     DataDir = proplists:get_value(data_dir, Config),
@@ -154,6 +157,28 @@ comment_config(_) ->
     application:start(?APP),
     ?assertEqual([], emqttd_access_control:lookup_mods(auth)),
     ?assertEqual([], emqttd_access_control:lookup_mods(acl)).
+
+server_config(_) ->
+    I = [{host, "localhost"},
+         {pool_size, 1},
+         {port, 6377},
+         {auto_reconnect, 1},
+         {password, "public"},
+         {database, 1}
+       ],
+    SetConfigKeys = ["server=localhost:6377",
+                     "pool=1",
+                     "password=public",
+                     "database=1",
+                     "password_hash=salt,sha256"],
+    lists:foreach(fun set_cmd/1, SetConfigKeys),
+    {ok, E} =  application:get_env(emq_auth_redis, server),
+    {ok, Hash} =  application:get_env(emq_auth_redis, password_hash),
+    ?assertEqual(lists:sort(I), lists:sort(E)),
+    ?assertEqual('salt,sha256', Hash).
+
+set_cmd(Key) ->
+    emqttd_cli_config:run(["config", "set", string:join(["auth.redis", Key], "."), "--app=emq_auth_redis"]).
 
 start_apps(App, DataDir) ->
     Schema = cuttlefish_schema:files([filename:join([DataDir, atom_to_list(App) ++ ".schema"])]),
