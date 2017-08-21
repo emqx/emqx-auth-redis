@@ -175,7 +175,7 @@ server_config(_) ->
     {ok, E} =  application:get_env(emq_auth_redis, server),
     {ok, Hash} =  application:get_env(emq_auth_redis, password_hash),
     ?assertEqual(lists:sort(I), lists:sort(E)),
-    ?assertEqual('salt,sha256', Hash).
+    ?assertEqual({salt,sha256}, Hash).
 
 set_cmd(Key) ->
     emqttd_cli_config:run(["config", "set", string:join(["auth.redis", Key], "."), "--app=emq_auth_redis"]).
