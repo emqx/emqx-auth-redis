@@ -14,13 +14,13 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emq_auth_redis_cli).
+-module(emqx_auth_redis_cli).
 
 -behaviour(ecpool_worker).
 
--include("emq_auth_redis.hrl").
+-include("emqx_auth_redis.hrl").
 
--include_lib("emqttd/include/emqttd.hrl").
+-include_lib("emqx/include/emqx.hrl").
 
 -define(ENV(Key, Opts), proplists:get_value(Key, Opts)).
 
@@ -31,7 +31,14 @@
 %%--------------------------------------------------------------------
 
 connect(Opts) ->
-    eredis:start_link(?ENV(host, Opts),
+    Sentinel = ?ENV(sentinel, Opts),
+    Host = case Sentinel =:= "" of
+        true -> ?ENV(host, Opts);
+        false ->
+            eredis_sentinel:start_link([{?ENV(host, Opts), ?ENV(port, Opts)}]),
+            "sentinel:" ++ Sentinel
+    end,
+    eredis:start_link(Host,
                       ?ENV(port, Opts),
                       ?ENV(database, Opts),
                       ?ENV(password, Opts),

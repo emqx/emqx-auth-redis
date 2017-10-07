@@ -14,19 +14,19 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emq_auth_redis_SUITE).
+-module(emqx_auth_redis_SUITE).
 
 -compile(export_all).
 
--include_lib("emqttd/include/emqttd.hrl").
+-include_lib("emqx/include/emqx.hrl").
 
 -include_lib("common_test/include/ct.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("emq_auth_redis.hrl").
+-include("emqx_auth_redis.hrl").
 
--define(POOL(App),  ecpool_worker:client(gproc_pool:pick_worker({ecpool, App}))).
+-define(POOL(App), ecpool_worker:client(gproc_pool:pick_worker({ecpool, App}))).
 
 -define(INIT_ACL, [{"mqtt_acl:test1", "topic1", "2"},
                    {"mqtt_acl:test2", "topic2", "1"},
@@ -40,25 +40,21 @@
                     {"mqtt_user:bcrypt_foo", ["password", "$2a$12$sSS8Eg.ovVzaHzi1nUHYK.HbUIOdlQI0iS22Q5rd5z.JVVYH6sfm6", "salt", "$2a$12$sSS8Eg.ovVzaHzi1nUHYK.", "is_superuser", "0"]}]).
 
 all() -> 
-    [{group, emq_auth_redis_auth},
-     {group, emq_auth_redis_acl},
-     {group, emq_auth_redis},
+    [{group, emqx_auth_redis_auth},
+     {group, emqx_auth_redis_acl},
+     {group, emqx_auth_redis},
      {group, auth_redis_config}
     ].
 
 groups() -> 
-    [{emq_auth_redis_auth, [sequence],
-     [check_auth, list_auth, check_auth_hget]},
-    {emq_auth_redis_acl, [sequence],
-     [check_acl, acl_super]},
-    {emq_auth_redis, [sequence],
-     [comment_config]},
-     {auth_redis_config, [sequence], [server_config]}
-].
+    [{emqx_auth_redis_auth, [sequence], [check_auth, list_auth, check_auth_hget]},
+     {emqx_auth_redis_acl, [sequence], [check_acl, acl_super]},
+     {emqx_auth_redis, [sequence], [comment_config]},
+     {auth_redis_config, [sequence], [server_config]}].
 
 init_per_suite(Config) ->
     DataDir = proplists:get_value(data_dir, Config),
-    Apps = [start_apps(App, DataDir) || App <- [emqttd, emq_auth_redis]],
+    Apps = [start_apps(App, DataDir) || App <- [emqx, emqx_auth_redis]],
     ct:log("Apps:~p", [Apps]),
     Config.
 
@@ -68,7 +64,7 @@ end_per_suite(Config) ->
     AclKeys = [Key || {Key, _Value} <- ?INIT_ACL],
     eredis:q(Connection, ["DEL" | AuthKeys]),
     eredis:q(Connection, ["DEL" | AclKeys]),
-    application:stop(emq_auth_redis),
+    application:stop(emqx_auth_redis),
     application:stop(ecpool).
 
 check_auth(Config) ->
@@ -82,31 +78,31 @@ check_auth(Config) ->
     Bcrypt = #mqtt_client{client_id = <<"bcrypt_foo">>, username = <<"bcrypt_foo">>},
     User1 = #mqtt_client{client_id = <<"bcrypt_foo">>, username = <<"user">>},
     User3 = #mqtt_client{client_id = <<"client3">>},
-    {error, username_or_password_undefined} = emqttd_access_control:auth(User3, <<>>),
+    {error, username_or_password_undefined} = emqx_access_control:auth(User3, <<>>),
     reload([{password_hash, plain}]),
-    {ok, true} = emqttd_access_control:auth(Plain, <<"plain">>),
+    {ok, true} = emqx_access_control:auth(Plain, <<"plain">>),
     reload([{password_hash, md5}]),
-    {ok, false} = emqttd_access_control:auth(Md5, <<"md5">>),
+    {ok, false} = emqx_access_control:auth(Md5, <<"md5">>),
     reload([{password_hash, sha}]),
-    {ok, false} = emqttd_access_control:auth(Sha, <<"sha">>),
+    {ok, false} = emqx_access_control:auth(Sha, <<"sha">>),
     reload([{password_hash, sha256}]),
-    {ok, false} = emqttd_access_control:auth(Sha256, <<"sha256">>),
+    {ok, false} = emqx_access_control:auth(Sha256, <<"sha256">>),
     %%pbkdf2 sha
     reload([{password_hash, {pbkdf2, sha, 1, 16}}, {auth_cmd, "HMGET mqtt_user:%u password salt"}]),
-    {ok, false} = emqttd_access_control:auth(Pbkdf2, <<"password">>),
+    {ok, false} = emqx_access_control:auth(Pbkdf2, <<"password">>),
     reload([{password_hash, {salt, bcrypt}}]),
-    {ok, false} = emqttd_access_control:auth(Bcrypt, <<"foo">>),
-    ok = emqttd_access_control:auth(User1, <<"foo">>).
+    {ok, false} = emqx_access_control:auth(Bcrypt, <<"foo">>),
+    ok = emqx_access_control:auth(User1, <<"foo">>).
 
 list_auth(_Config) ->
-    application:start(emq_auth_username),
-    emq_auth_username:add_user(<<"user1">>, <<"password1">>),
+    application:start(emqx_auth_username),
+    emqx_auth_username:add_user(<<"user1">>, <<"password1">>),
     User1 = #mqtt_client{client_id = <<"client1">>, username = <<"user1">>},
-    ok = emqttd_access_control:auth(User1, <<"password1">>),
+    ok = emqx_access_control:auth(User1, <<"password1">>),
     reload([{password_hash, plain}, {auth_cmd, "HMGET mqtt_user:%u password"}]),
     Plain = #mqtt_client{client_id = <<"client1">>, username = <<"plain">>},
-    {ok, true} = emqttd_access_control:auth(Plain, <<"plain">>),
-    Stop = application:stop(emq_auth_username),
+    {ok, true} = emqx_access_control:auth(Plain, <<"plain">>),
+    Stop = application:stop(emqx_auth_username),
     ct:log("Stop:~p~n", [Stop]).
 
 check_auth_hget(Config) ->
@@ -115,7 +111,7 @@ check_auth_hget(Config) ->
     eredis:q(Connection, ["HSET", "mqtt_user:hset", "is_superuser", "1"]),
     reload([{password_hash, plain}, {auth_cmd, "HGET mqtt_user:%u password"}]),
     Hset = #mqtt_client{client_id = <<"hset">>, username = <<"hset">>},
-    {ok, true} = emqttd_access_control:auth(Hset, <<"hset">>).
+    {ok, true} = emqx_access_control:auth(Hset, <<"hset">>).
 
 check_acl(Config) ->
     {ok, Connection} = ?POOL(?APP), 
@@ -124,14 +120,14 @@ check_acl(Config) ->
     User2 = #mqtt_client{client_id = <<"client2">>, username = <<"test2">>},
     User3 = #mqtt_client{client_id = <<"client3">>, username = <<"test3">>},
     User4 = #mqtt_client{client_id = <<"client4">>, username = <<"$$user4">>},
-    deny = emqttd_access_control:check_acl(User1, subscribe, <<"topic1">>),
-    allow = emqttd_access_control:check_acl(User1, publish, <<"topic1">>),
+    deny = emqx_access_control:check_acl(User1, subscribe, <<"topic1">>),
+    allow = emqx_access_control:check_acl(User1, publish, <<"topic1">>),
 
-    deny = emqttd_access_control:check_acl(User2, publish, <<"topic2">>),
-    allow = emqttd_access_control:check_acl(User2, subscribe, <<"topic2">>),
-    allow = emqttd_access_control:check_acl(User3, publish, <<"topic3">>),
-    allow = emqttd_access_control:check_acl(User3, subscribe, <<"topic3">>),
-    allow = emqttd_access_control:check_acl(User4, publish, <<"a/b/c">>).
+    deny = emqx_access_control:check_acl(User2, publish, <<"topic2">>),
+    allow = emqx_access_control:check_acl(User2, subscribe, <<"topic2">>),
+    allow = emqx_access_control:check_acl(User3, publish, <<"topic3">>),
+    allow = emqx_access_control:check_acl(User3, subscribe, <<"topic3">>),
+    allow = emqx_access_control:check_acl(User4, publish, <<"a/b/c">>).
 
 acl_super(_Config) ->
     reload([{password_hash, plain}]),
@@ -155,8 +151,8 @@ comment_config(_) ->
     application:stop(?APP),
     [application:unset_env(?APP, Par) || Par <- [acl_cmd, auth_cmd]],
     application:start(?APP),
-    ?assertEqual([], emqttd_access_control:lookup_mods(auth)),
-    ?assertEqual([], emqttd_access_control:lookup_mods(acl)).
+    ?assertEqual([], emqx_access_control:lookup_mods(auth)),
+    ?assertEqual([], emqx_access_control:lookup_mods(acl)).
 
 server_config(_) ->
     I = [{host, "localhost"},
@@ -172,13 +168,13 @@ server_config(_) ->
                      "database=1",
                      "password_hash=salt,sha256"],
     lists:foreach(fun set_cmd/1, SetConfigKeys),
-    {ok, E} =  application:get_env(emq_auth_redis, server),
-    {ok, Hash} =  application:get_env(emq_auth_redis, password_hash),
+    {ok, E} =  application:get_env(emqx_auth_redis, server),
+    {ok, Hash} =  application:get_env(emqx_auth_redis, password_hash),
     ?assertEqual(lists:sort(I), lists:sort(E)),
-    ?assertEqual({salt,sha256}, Hash).
+    ?assertEqual({salt, sha256}, Hash).
 
 set_cmd(Key) ->
-    emqttd_cli_config:run(["config", "set", string:join(["auth.redis", Key], "."), "--app=emq_auth_redis"]).
+    emqx_cli_config:run(["config", "set", string:join(["auth.redis", Key], "."), "--app=emqx_auth_redis"]).
 
 start_apps(App, DataDir) ->
     Schema = cuttlefish_schema:files([filename:join([DataDir, atom_to_list(App) ++ ".schema"])]),
@@ -192,5 +188,4 @@ reload(Config) when is_list(Config) ->
     application:stop(?APP),
     [application:set_env(?APP, K, V) || {K, V} <- Config],
     application:start(?APP).
-
 

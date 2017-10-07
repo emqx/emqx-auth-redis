@@ -14,7 +14,7 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module (emq_auth_redis_config).
+-module(emqx_auth_redis_cfg).
 
 -include("emq_auth_redis.hrl").
 
@@ -23,6 +23,7 @@
 %%--------------------------------------------------------------------
 %% API
 %%--------------------------------------------------------------------
+
 register() ->
     clique_config:load_schema([code:priv_dir(?APP)], ?APP),
     register_formatter(),
@@ -36,6 +37,7 @@ unregister() ->
 %%--------------------------------------------------------------------
 %% Get ENV Register formatter
 %%--------------------------------------------------------------------
+
 register_formatter() ->
     [clique:register_formatter(cuttlefish_variable:tokenize(Key), 
      fun formatter_callback/2) || Key <- keys()].
@@ -127,3 +129,4 @@ parse_servers(Value) ->
         [Domain]       -> {Domain, 3306};
         [Domain, Port] -> {Domain, list_to_integer(Port)}
     end.
+

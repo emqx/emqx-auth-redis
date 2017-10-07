@@ -14,32 +14,32 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emq_auth_redis_app).
+-module(emqx_auth_redis_app).
 
 -behaviour(application).
 
--include("emq_auth_redis.hrl").
+-include("emqx_auth_redis.hrl").
 
 -export([start/2, stop/1]).
 
 start(_StartType, _StartArgs) ->
-    {ok, Sup} = emq_auth_redis_sup:start_link(),
+    {ok, Sup} = emqx_auth_redis_sup:start_link(),
     if_cmd_enabled(auth_cmd, fun reg_authmod/1),
     if_cmd_enabled(acl_cmd,  fun reg_aclmod/1),
-    emq_auth_redis_config:register(),
+    emqx_auth_redis_cfg:register(),
     {ok, Sup}.
 
 stop(_State) ->
-    emqttd_access_control:unregister_mod(auth, emq_auth_redis),
-    emqttd_access_control:unregister_mod(acl, emq_acl_redis),
-    emq_auth_redis_config:unregister().
+    emqx_access_control:unregister_mod(auth, emqx_auth_redis),
+    emqx_access_control:unregister_mod(acl, emqx_acl_redis),
+    emqx_auth_redis_cfg:unregister().
 
 reg_authmod(AuthCmd) ->
     SuperCmd = application:get_env(?APP, super_cmd, undefined),
     {ok, PasswdHash} = application:get_env(?APP, password_hash),
-    emqttd_access_control:register_mod(auth, emq_auth_redis, {AuthCmd, SuperCmd, PasswdHash}).
+    emqx_access_control:register_mod(auth, emqx_auth_redis, {AuthCmd, SuperCmd, PasswdHash}).
 reg_aclmod(AclCmd) ->
-    emqttd_access_control:register_mod(acl, emq_acl_redis, AclCmd).
+    emqx_access_control:register_mod(acl, emqx_acl_redis, AclCmd).
 
 if_cmd_enabled(Par, Fun) ->
     case application:get_env(?APP, Par) of

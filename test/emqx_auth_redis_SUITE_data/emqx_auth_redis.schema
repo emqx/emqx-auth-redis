@@ -1,27 +1,34 @@
 %%-*- mode: erlang -*-
-%% emq_auth_redis config mapping
-{mapping, "auth.redis.server", "emq_auth_redis.server", [
+%% emqx_auth_redis config mapping
+
+{mapping, "auth.redis.server", "emqx_auth_redis.server", [
   {default, {"127.0.0.1", 6379}},
   {datatype, [integer, ip, string]}
 ]}.
 
-{mapping, "auth.redis.pool", "emq_auth_redis.server", [
-  {default, 8},
-  {datatype, integer}
-]}.
-
-{mapping, "auth.redis.database", "emq_auth_redis.server", [
-  {default, 0},
-  {datatype, integer}
-]}.
-
-{mapping, "auth.redis.password", "emq_auth_redis.server", [
+{mapping, "auth.redis.sentinel", "emqx_auth_redis.server", [
   {default, ""},
   {datatype, string},
   hidden
 ]}.
 
-{translation, "emq_auth_redis.server", fun(Conf) ->
+{mapping, "auth.redis.pool", "emqx_auth_redis.server", [
+  {default, 8},
+  {datatype, integer}
+]}.
+
+{mapping, "auth.redis.database", "emqx_auth_redis.server", [
+  {default, 0},
+  {datatype, integer}
+]}.
+
+{mapping, "auth.redis.password", "emqx_auth_redis.server", [
+  {default, ""},
+  {datatype, string},
+  hidden
+]}.
+
+{translation, "emqx_auth_redis.server", fun(Conf) ->
   {RHost, RPort} =
   case cuttlefish:conf_get("auth.redis.server", Conf) of
     {Ip, Port} -> {Ip, Port};
@@ -33,33 +40,35 @@
   Pool = cuttlefish:conf_get("auth.redis.pool", Conf),
   Passwd = cuttlefish:conf_get("auth.redis.password", Conf),
   DB = cuttlefish:conf_get("auth.redis.database", Conf),
+  Sentinel = cuttlefish:conf_get("auth.redis.sentinel", Conf),
   [{pool_size, Pool},
    {auto_reconnect, 1},
    {host, RHost},
    {port, RPort},
    {database, DB},
-   {password, Passwd}]
+   {password, Passwd},
+   {sentinel, Sentinel}]
 end}.
 
-{mapping, "auth.redis.auth_cmd", "emq_auth_redis.auth_cmd", [
+{mapping, "auth.redis.auth_cmd", "emqx_auth_redis.auth_cmd", [
   {datatype, string}
 ]}.
 
-{mapping, "auth.redis.password_hash", "emq_auth_redis.password_hash", [
+{mapping, "auth.redis.password_hash", "emqx_auth_redis.password_hash", [
   {datatype, string}
 ]}.
 
-{mapping, "auth.redis.super_cmd", "emq_auth_redis.super_cmd", [
+{mapping, "auth.redis.super_cmd", "emqx_auth_redis.super_cmd", [
   {datatype, string}
 ]}.
 
-{mapping, "auth.redis.acl_cmd", "emq_auth_redis.acl_cmd", [
+{mapping, "auth.redis.acl_cmd", "emqx_auth_redis.acl_cmd", [
   {datatype, string}
 ]}.
 
-{translation, "emq_auth_redis.password_hash", fun(Conf) ->
+{translation, "emqx_auth_redis.password_hash", fun(Conf) ->
   HashValue = cuttlefish:conf_get("auth.redis.password_hash", Conf),
-  case string:tokens(HashValue, " ") of
+  case string:tokens(HashValue, ",") of
     [Hash]           -> list_to_atom(Hash);
     [Prefix, Suffix] -> {list_to_atom(Prefix), list_to_atom(Suffix)};
     [Hash, MacFun, Iterations, Dklen] -> {list_to_atom(Hash), list_to_atom(MacFun), list_to_integer(Iterations), list_to_integer(Dklen)};

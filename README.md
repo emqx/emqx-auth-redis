@@ -1,8 +1,8 @@
 
-emq_auth_redis
-==============
+emqx_auth_redis
+===============
 
-Redis Authentication/ACL Plugin
+EMQ X Redis Authentication/ACL Plugin
 
 Build Plugin
 ------------
@@ -14,11 +14,14 @@ make && make tests
 Configure Plugin
 ----------------
 
-File: etc/emq_auth_redis.conf
+File: etc/emqx_auth_redis.conf
 
 ```
-## Redis Server
+## Redis Server: 6379, 127.0.0.1:6379, localhost:6379, Redis Sentinel: 127.0.0.1:26379
 auth.redis.server = 127.0.0.1:6379
+
+## redis sentinel cluster name
+## auth.redis.sentinel = mymaster
 
 ## Redis Pool Size
 auth.redis.pool = 8
@@ -99,7 +102,7 @@ NOTE: 1: subscribe, 2: publish, 3: pubsub
 Subscription Hash
 -----------------
 
-NOTICE: Move to emq_backend_redis...
+NOTICE: Move to emqx_backend_redis...
 
 The plugin could store the static subscriptions into a redis Hash:
 
@@ -113,11 +116,11 @@ Load Plugin
 -----------
 
 ```
-./bin/emqttd_ctl plugins load emq_auth_redis
+./bin/emqx_ctl plugins load emqx_auth_redis
 ```
 
 Author
 ------
 
-Feng Lee <feng@emqtt.io>
+EMQ X-Men Team.
 

@@ -14,11 +14,11 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emq_acl_redis).
+-module(emqx_acl_redis).
 
--behaviour(emqttd_acl_mod).
+-behaviour(emqx_acl_mod).
 
--include_lib("emqttd/include/emqttd.hrl").
+-include_lib("emqx/include/emqx.hrl").
 
 %% ACL callbacks
 -export([init/1, check_acl/2, reload_acl/1, description/0]).
@@ -32,7 +32,7 @@ check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) 
     ignore;
 
 check_acl({Client, PubSub, Topic}, #state{acl_cmd     = AclCmd}) ->
-    case emq_auth_redis_cli:q(AclCmd, Client) of
+    case emqx_auth_redis_cli:q(AclCmd, Client) of
         {ok, []}         -> ignore;
         {ok, Rules}      -> case match(Client, PubSub, Topic, Rules) of
                                 allow   -> allow;
@@ -50,7 +50,7 @@ match(Client, PubSub, Topic, [Filter, Access | Rules]) ->
     end.
 
 match_topic(Topic, Filter) ->
-    emqttd_topic:match(Topic, Filter).
+    emqx_topic:match(Topic, Filter).
 
 match_access(subscribe, Access) ->
     (1 band Access) > 0;

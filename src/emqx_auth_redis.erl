@@ -14,13 +14,13 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emq_auth_redis).
+-module(emqx_auth_redis).
 
--behaviour(emqttd_auth_mod).
+-behaviour(emqx_auth_mod).
 
--include("emq_auth_redis.hrl").
+-include("emqx_auth_redis.hrl").
 
--include_lib("emqttd/include/emqttd.hrl").
+-include_lib("emqx/include/emqx.hrl").
 
 -export([init/1, check/3, description/0]).
 
@@ -38,7 +38,7 @@ check(#mqtt_client{username = Username}, Password, _State)
 check(Client, Password, #state{auth_cmd  = AuthCmd,
                                super_cmd = SuperCmd,
                                hash_type = HashType}) ->
-    Result = case emq_auth_redis_cli:q(AuthCmd, Client) of
+    Result = case emqx_auth_redis_cli:q(AuthCmd, Client) of
                 {ok, PassHash} when is_binary(PassHash) ->
                     check_pass(PassHash, Password, HashType);  
                 {ok, [undefined|_]} ->
@@ -68,13 +68,13 @@ check_pass(_, _)               -> {error, password_error}.
 
 description() -> "Authentication with Redis".
 
-hash(Type, Password) -> emqttd_auth_mod:passwd_hash(Type, Password).
+hash(Type, Password) -> emqx_auth_mod:passwd_hash(Type, Password).
 
 -spec(is_superuser(undefined | list(), mqtt_client()) -> boolean()).
 is_superuser(undefined, _Client) ->
     false;
 is_superuser(SuperCmd, Client) ->
-    case emq_auth_redis_cli:q(SuperCmd, Client) of
+    case emqx_auth_redis_cli:q(SuperCmd, Client) of
         {ok, undefined} -> false;
         {ok, <<"1">>}   -> true;
         {ok, _Other}    -> false;

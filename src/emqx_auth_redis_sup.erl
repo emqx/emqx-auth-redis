@@ -14,11 +14,11 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emq_auth_redis_sup).
+-module(emqx_auth_redis_sup).
 
 -behaviour(supervisor).
 
--include("emq_auth_redis.hrl").
+-include("emqx_auth_redis.hrl").
 
 -export([start_link/0]).
 
@@ -29,6 +29,6 @@ start_link() ->
 
 init([]) ->
     {ok, Server} = application:get_env(?APP, server),
-    PoolSpec = ecpool:pool_spec(?APP, ?APP, emq_auth_redis_cli, Server),
+    PoolSpec = ecpool:pool_spec(?APP, ?APP, emqx_auth_redis_cli, Server),
     {ok, {{one_for_one, 10, 100}, [PoolSpec]}}.
 
