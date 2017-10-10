@@ -18,8 +18,6 @@
 
 -behaviour(ecpool_worker).
 
--include("emqx_auth_redis.hrl").
-
 -include_lib("emqx/include/emqx.hrl").
 
 -define(ENV(Key, Opts), proplists:get_value(Key, Opts)).
@@ -48,7 +46,7 @@ connect(Opts) ->
 -spec(q(string(), mqtt_client()) -> {ok, undefined | binary() | list()} | {error, atom() | binary()}).
 q(CmdStr, Client) ->
     Cmd = string:tokens(replvar(CmdStr, Client), " "),
-    ecpool:with_client(?APP, fun(C) -> eredis:q(C, Cmd) end).
+    ecpool:with_client(emqx_auth_redis, fun(C) -> eredis:q(C, Cmd) end).
 
 replvar(Cmd, #mqtt_client{client_id = ClientId, username = Username}) ->
     replvar(replvar(Cmd, "%u", Username), "%c", ClientId).

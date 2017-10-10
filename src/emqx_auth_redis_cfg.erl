@@ -16,9 +16,9 @@
 
 -module(emqx_auth_redis_cfg).
 
--include("emq_auth_redis.hrl").
+-export([register/0, unregister/0]).
 
--export ([register/0, unregister/0]).
+-define(APP, emqx_auth_redis).
 
 %%--------------------------------------------------------------------
 %% API

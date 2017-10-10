@@ -18,8 +18,6 @@
 
 -behaviour(emqx_auth_mod).
 
--include("emqx_auth_redis.hrl").
-
 -include_lib("emqx/include/emqx.hrl").
 
 -export([init/1, check/3, description/0]).
