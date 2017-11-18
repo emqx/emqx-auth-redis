@@ -1,5 +1,5 @@
 
-emq_auth_redis
+emq-auth-redis
 ==============
 
 Redis Authentication/ACL Plugin
@@ -119,5 +119,5 @@ Load Plugin
 Author
 ------
 
-Feng Lee <feng@emqtt.io>
+EMQ X Team.
 
