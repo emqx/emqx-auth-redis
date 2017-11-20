@@ -1,6 +1,6 @@
-
 emqx_auth_redis
 ===============
+
 
 EMQ X Redis Authentication/ACL Plugin
 
@@ -123,4 +123,5 @@ Author
 ------
 
 EMQ X-Men Team.
+
 
