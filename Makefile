@@ -4,7 +4,7 @@ PROJECT_VERSION = 2.3.0
 
 DEPS = eredis ecpool clique
 
-dep_eredis = git https://github.com/wooga/eredis master
+dep_eredis = git https://github.com/turtleDeng/eredis.git
 dep_ecpool = git https://github.com/emqtt/ecpool master
 dep_clique = git https://github.com/emqtt/clique
 
