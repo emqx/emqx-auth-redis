@@ -1,6 +1,8 @@
+.PHONY: app tests
+
 PROJECT = emq_auth_redis
 PROJECT_DESCRIPTION = Authentication/ACL with Redis
-PROJECT_VERSION = 2.3.2
+PROJECT_VERSION = 2.3.3
 
 DEPS = eredis ecpool clique
 
