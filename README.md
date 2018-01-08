@@ -1,7 +1,6 @@
 emqx_auth_redis
 ===============
 
-
 EMQ X Redis Authentication/ACL Plugin
 
 Build Plugin
@@ -17,28 +16,48 @@ Configure Plugin
 File: etc/emqx_auth_redis.conf
 
 ```
+## Redis server address.
+##
+## Value: Port | IP:Port
+##
 ## Redis Server: 6379, 127.0.0.1:6379, localhost:6379, Redis Sentinel: 127.0.0.1:26379
 auth.redis.server = 127.0.0.1:6379
 
 ## redis sentinel cluster name
 ## auth.redis.sentinel = mymaster
 
-## Redis Pool Size
+## Redis pool size.
+##
+## Value: Number
 auth.redis.pool = 8
 
-## Redis Database
+## Redis database no.
+##
+## Value: Number
 auth.redis.database = 0
 
-## Redis Password
+## Redis password.
+##
+## Value: String
 ## auth.redis.password =
 
-## Variables: %u = username, %c = clientid
-
-## Authentication Query Command
-## HMGET mqtt_user:%u password or HMGET mqtt_user:%u password salt or HGET mqtt_user:%u password
+## Authentication query command.
+##
+## Value: Redis cmd
+##
+## Variables:
+##  - %u: username
+##  - %c: clientid
+##
+## Examples:
+##  - HGET mqtt_user:%u password
+##  - HMGET mqtt_user:%u password
+##  - HMGET mqtt_user:%u password salt
 auth.redis.auth_cmd = HMGET mqtt_user:%u password
 
-## Password hash: plain, md5, sha, sha256, bcrypt
+## Password hash.
+##
+## Value: plain | md5 | sha | sha256 | bcrypt
 auth.redis.password_hash = plain
 
 ## sha256 with salt prefix
@@ -54,10 +73,22 @@ auth.redis.password_hash = plain
 ## macfun: md4, md5, ripemd160, sha, sha224, sha256, sha384, sha512
 ## auth.redis.password_hash = pbkdf2,sha256,1000,20
 
-## Superuser Query Command
+## Superuser query command.
+##
+## Value: Redis cmd
+##
+## Variables:
+##  - %u: username
+##  - %c: clientid
 auth.redis.super_cmd = HGET mqtt_user:%u is_superuser
 
-## ACL Query Command
+## ACL query command.
+##
+## Value: Redis cmd
+##
+## Variables:
+##  - %u: username
+##  - %c: clientid
 auth.redis.acl_cmd = HGETALL mqtt_acl:%u
 ```
 
