@@ -2,7 +2,7 @@
 
 PROJECT = emq_auth_redis
 PROJECT_DESCRIPTION = Authentication/ACL with Redis
-PROJECT_VERSION = 2.3.7
+PROJECT_VERSION = 2.3.8
 
 DEPS = eredis ecpool clique
 
