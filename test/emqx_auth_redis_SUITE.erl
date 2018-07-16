@@ -1,5 +1,4 @@
-%%--------------------------------------------------------------------
-%% Copyright (c) 2013-2018 EMQ Enterprise, Inc. (http://emqtt.io)
+%% Copyright (c) 2018 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,7 +11,6 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%%--------------------------------------------------------------------
 
 -module(emqx_auth_redis_SUITE).
 
@@ -39,14 +37,14 @@
                     {"mqtt_user:pbkdf2_password", ["password", "cdedb5281bb2f801565a1122b2563515", "salt", "ATHENA.MIT.EDUraeburn", "is_superuser", "0"]},
                     {"mqtt_user:bcrypt_foo", ["password", "$2a$12$sSS8Eg.ovVzaHzi1nUHYK.HbUIOdlQI0iS22Q5rd5z.JVVYH6sfm6", "salt", "$2a$12$sSS8Eg.ovVzaHzi1nUHYK.", "is_superuser", "0"]}]).
 
-all() -> 
+all() ->
     [{group, emqx_auth_redis_auth},
      {group, emqx_auth_redis_acl},
      {group, emqx_auth_redis},
      {group, auth_redis_config}
     ].
 
-groups() -> 
+groups() ->
     [{emqx_auth_redis_auth, [sequence], [check_auth, list_auth, check_auth_hget]},
      {emqx_auth_redis_acl, [sequence], [check_acl, acl_super]},
      {emqx_auth_redis, [sequence], [comment_config]},
@@ -59,7 +57,7 @@ init_per_suite(Config) ->
     Config.
 
 end_per_suite(Config) ->
-    {ok, Connection} = ?POOL(?APP), 
+    {ok, Connection} = ?POOL(?APP),
     AuthKeys = [Key || {Key, _Filed, _Value} <- ?INIT_AUTH],
     AclKeys = [Key || {Key, _Value} <- ?INIT_ACL],
     eredis:q(Connection, ["DEL" | AuthKeys]),
@@ -68,7 +66,7 @@ end_per_suite(Config) ->
     application:stop(ecpool).
 
 check_auth(Config) ->
-    {ok, Connection} = ?POOL(?APP), 
+    {ok, Connection} = ?POOL(?APP),
     [eredis:q(Connection, ["HMSET", Key|FiledValue]) || {Key, FiledValue} <- ?INIT_AUTH],
     Plain = #mqtt_client{client_id = <<"client1">>, username = <<"plain">>},
     Md5 = #mqtt_client{client_id = <<"md5">>, username = <<"md5">>},
@@ -106,7 +104,7 @@ list_auth(_Config) ->
     ct:log("Stop:~p~n", [Stop]).
 
 check_auth_hget(Config) ->
-    {ok, Connection} = ?POOL(?APP), 
+    {ok, Connection} = ?POOL(?APP),
     eredis:q(Connection, ["HSET", "mqtt_user:hset", "password", "hset"]),
     eredis:q(Connection, ["HSET", "mqtt_user:hset", "is_superuser", "1"]),
     reload([{password_hash, plain}, {auth_cmd, "HGET mqtt_user:%u password"}]),
@@ -114,7 +112,7 @@ check_auth_hget(Config) ->
     {ok, true} = emqx_access_control:auth(Hset, <<"hset">>).
 
 check_acl(Config) ->
-    {ok, Connection} = ?POOL(?APP), 
+    {ok, Connection} = ?POOL(?APP),
     Result = [eredis:q(Connection, ["HSET", Key, Filed, Value]) || {Key, Filed, Value} <- ?INIT_ACL],
     User1 = #mqtt_client{client_id = <<"client1">>, username = <<"test1">>},
     User2 = #mqtt_client{client_id = <<"client2">>, username = <<"test2">>},
@@ -131,11 +129,11 @@ check_acl(Config) ->
 
 acl_super(_Config) ->
     reload([{password_hash, plain}]),
-    {ok, C} = emqttc:start_link([{host, "localhost"}, {client_id, <<"simpleClient">>}, {username, <<"plain">>}, {password, <<"plain">>}]),
+    {ok, C} = emqx_client:start_link([{host, "localhost"}, {client_id, <<"simpleClient">>}, {username, <<"plain">>}, {password, <<"plain">>}]),
     timer:sleep(10),
-    emqttc:subscribe(C, <<"TopicA">>, qos2),
+    emqx_client:subscribe(C, <<"TopicA">>, qos2),
     timer:sleep(1000),
-    emqttc:publish(C, <<"TopicA">>, <<"Payload">>, qos2),
+    emqx_client:publish(C, <<"TopicA">>, <<"Payload">>, qos2),
     timer:sleep(1000),
     receive
         {publish, Topic, Payload} ->
@@ -145,7 +143,7 @@ acl_super(_Config) ->
         io:format("Error: receive timeout!~n"),
         ok
     end,
-    emqttc:disconnect(C).
+    emqx_client:disconnect(C).
 
 comment_config(_) ->
     application:stop(?APP),

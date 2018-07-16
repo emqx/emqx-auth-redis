@@ -1,5 +1,4 @@
-%%--------------------------------------------------------------------
-%% Copyright (c) 2013-2018 EMQ Enterprise, Inc. (http://emqtt.io)
+%% Copyright (c) 2018 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,7 +11,6 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%%--------------------------------------------------------------------
 
 -module(emqx_acl_redis).
 
@@ -31,14 +29,16 @@ init(AclCmd) ->
 check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
     ignore;
 
-check_acl({Client, PubSub, Topic}, #state{acl_cmd     = AclCmd}) ->
+check_acl({Client, PubSub, Topic}, #state{acl_cmd = AclCmd}) ->
     case emqx_auth_redis_cli:q(AclCmd, Client) of
-        {ok, []}         -> ignore;
-        {ok, Rules}      -> case match(Client, PubSub, Topic, Rules) of
-                                allow   -> allow;
-                                nomatch -> deny
-                            end;
-        {error, Reason} -> lager:error("Redis check_acl error: ~p~n", [Reason]), ignore
+        {ok, []} -> ignore;
+        {ok, Rules} ->
+            case match(Client, PubSub, Topic, Rules) of
+                allow   -> allow;
+                nomatch -> deny
+            end;
+        {error, Reason} ->
+            emqx_logger:error("Redis check_acl error: ~p", [Reason]), ignore
     end.
 
 match(_Client, _PubSub, _Topic, []) ->

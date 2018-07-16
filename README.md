@@ -114,7 +114,7 @@ User Set with Password
 Set a 'user' Set with 'password' field for example:
 
 ```
-HSET mqtt_user:<username> password "password" 
+HSET mqtt_user:<username> password "password"
 ```
 
 ACL Rule Hash
@@ -153,6 +153,6 @@ Load Plugin
 Author
 ------
 
-EMQ X-Men Team.
+EMQ X Team.
 
 

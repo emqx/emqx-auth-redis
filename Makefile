@@ -6,19 +6,19 @@ PROJECT_VERSION = 3.0
 
 DEPS = eredis ecpool clique
 
+##TODO: version or tag?
 dep_eredis = git https://github.com/turtleDeng/eredis.git
 dep_ecpool = git https://github.com/emqtt/ecpool master
-dep_clique = git https://github.com/emqtt/clique
+dep_clique = git https://github.com/emqx/clique
 
 BUILD_DEPS = emqx cuttlefish
 dep_emqx = git git@github.com:emqtt/emqttd emqx30
-dep_cuttlefish = git https://github.com/emqtt/cuttlefish
+dep_cuttlefish = git https://github.com/emqx/cuttlefish
 
 NO_AUTOPATCH = cuttlefish
 
-TEST_DEPS = emqttc emq_auth_username
-dep_emqttc = git https://github.com/emqtt/emqttc
-dep_emqx_auth_username = git https://github.com/emqtt/emq-auth-username emqx30
+TEST_DEPS = emqx_auth_username
+dep_emqx_auth_username = git https://github.com/emqx/emqx-auth-username emqx30
 
 TEST_ERLC_OPTS += +debug_info
 TEST_ERLC_OPTS += +'{parse_transform, lager_transform}'

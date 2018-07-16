@@ -1,5 +1,4 @@
-%%--------------------------------------------------------------------
-%% Copyright (c) 2013-2018 EMQ Enterprise, Inc. (http://emqtt.io)
+%% Copyright (c) 2018 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,17 +11,12 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%%--------------------------------------------------------------------
 
 -module(emqx_auth_redis_cfg).
 
 -export([register/0, unregister/0]).
 
 -define(APP, emqx_auth_redis).
-
-%%--------------------------------------------------------------------
-%% API
-%%--------------------------------------------------------------------
 
 register() ->
     clique_config:load_schema([code:priv_dir(?APP)], ?APP),
@@ -34,12 +28,8 @@ unregister() ->
     unregister_config(),
     clique_config:unload_schema(?APP).
 
-%%--------------------------------------------------------------------
-%% Get ENV Register formatter
-%%--------------------------------------------------------------------
-
 register_formatter() ->
-    [clique:register_formatter(cuttlefish_variable:tokenize(Key), 
+    [clique:register_formatter(cuttlefish_variable:tokenize(Key),
      fun formatter_callback/2) || Key <- keys()].
 
 formatter_callback([_, _, "server"], Params) ->
@@ -88,17 +78,13 @@ config_callback([_, _, Key0], Value) ->
     application:set_env(?APP, server, lists:keyreplace(Key, 1, Env, {Key, Value})),
     " successfully\n".
 
-%%--------------------------------------------------------------------
-%% UnRegister config
-%%--------------------------------------------------------------------
 unregister_config() ->
     Keys = keys(),
     [clique:unregister_config(Key) || Key <- Keys],
     clique:unregister_config_whitelist(Keys, ?APP).
 
 %%--------------------------------------------------------------------
-%% Internal Functions
-%%--------------------------------------------------------------------
+
 keys() ->
     ["auth.redis.server",
      "auth.redis.pool",
@@ -117,9 +103,9 @@ parse_password_hash(Value) ->
     case string:tokens(Value, ",") of
           [Hash]           -> list_to_atom(Hash);
           [Prefix, Suffix] -> {list_to_atom(Prefix), list_to_atom(Suffix)};
-          [Hash, MacFun, Iterations, Dklen] -> {list_to_atom(Hash), 
-                                                list_to_atom(MacFun), 
-                                                list_to_integer(Iterations), 
+          [Hash, MacFun, Iterations, Dklen] -> {list_to_atom(Hash),
+                                                list_to_atom(MacFun),
+                                                list_to_integer(Iterations),
                                                 list_to_integer(Dklen)};
           _                -> plain
     end.
