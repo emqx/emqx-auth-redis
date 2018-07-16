@@ -8,11 +8,11 @@ DEPS = eredis ecpool clique
 
 ##TODO: version or tag?
 dep_eredis = git https://github.com/turtleDeng/eredis.git
-dep_ecpool = git https://github.com/emqtt/ecpool master
+dep_ecpool = git https://github.com/emqx/ecpool master
 dep_clique = git https://github.com/emqx/clique
 
 BUILD_DEPS = emqx cuttlefish
-dep_emqx = git git@github.com:emqtt/emqttd emqx30
+dep_emqx = git https://github.com:emqtt/emqttd emqx30
 dep_cuttlefish = git https://github.com/emqx/cuttlefish
 
 NO_AUTOPATCH = cuttlefish

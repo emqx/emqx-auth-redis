@@ -16,11 +16,11 @@
 
 -behaviour(supervisor).
 
+-include("emqx_auth_redis.hrl").
+
 -export([start_link/0]).
 
 -export([init/1]).
-
--define(APP, emqx_auth_redis).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
