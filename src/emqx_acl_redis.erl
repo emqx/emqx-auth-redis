@@ -21,32 +21,30 @@
 %% ACL callbacks
 -export([init/1, check_acl/2, reload_acl/1, description/0]).
 
--record(state, {acl_cmd}).
-
 init(AclCmd) ->
-    {ok, #state{acl_cmd = AclCmd}}.
+    {ok, #{acl_cmd => AclCmd}}.
 
-check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
+check_acl({#{username := <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
     ignore;
-
-check_acl({Client, PubSub, Topic}, #state{acl_cmd = AclCmd}) ->
-    case emqx_auth_redis_cli:q(AclCmd, Client) of
+check_acl({Credetials, PubSub, Topic}, #{acl_cmd := AclCmd}) ->
+    case emqx_auth_redis_cli:q(AclCmd, Credetials) of
         {ok, []} -> ignore;
         {ok, Rules} ->
-            case match(Client, PubSub, Topic, Rules) of
+            case match(Credetials, PubSub, Topic, Rules) of
                 allow   -> allow;
                 nomatch -> deny
             end;
         {error, Reason} ->
-            emqx_logger:error("Redis check_acl error: ~p", [Reason]), ignore
+            emqx_logger:error("Redis check_acl error: ~p", [Reason]),
+            ignore
     end.
 
-match(_Client, _PubSub, _Topic, []) ->
+match(_Credetials, _PubSub, _Topic, []) ->
     nomatch;
-match(Client, PubSub, Topic, [Filter, Access | Rules]) ->
-    case {match_topic(Topic, feed_var(Client, Filter)), match_access(PubSub, b2i(Access))} of
+match(Credetials, PubSub, Topic, [Filter, Access | Rules]) ->
+    case {match_topic(Topic, feed_var(Credetials, Filter)), match_access(PubSub, b2i(Access))} of
         {true, true} -> allow;
-        {_, _} -> match(Client, PubSub, Topic, Rules)
+        {_, _} -> match(Credetials, PubSub, Topic, Rules)
     end.
 
 match_topic(Topic, Filter) ->
@@ -57,7 +55,7 @@ match_access(subscribe, Access) ->
 match_access(publish, Access) ->
     (2 band Access) > 0.
 
-feed_var(#mqtt_client{client_id = ClientId, username = Username}, Str) ->
+feed_var(#{client_id := ClientId, username := Username}, Str) ->
     lists:foldl(fun({Var, Val}, Acc) ->
                 feed_var(Acc, Var, Val)
         end, Str, [{"%u", Username}, {"%c", ClientId}]).

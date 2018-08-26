@@ -16,9 +16,9 @@
 
 -behaviour(application).
 
--export([start/2, stop/1]).
+-include("emqx_auth_redis.hrl").
 
--define(APP, emqx_auth_redis).
+-export([start/2, stop/1]).
 
 start(_StartType, _StartArgs) ->
     {ok, Sup} = emqx_auth_redis_sup:start_link(),
@@ -34,8 +34,8 @@ stop(_State) ->
 
 reg_authmod(AuthCmd) ->
     SuperCmd = application:get_env(?APP, super_cmd, undefined),
-    {ok, PasswdHash} = application:get_env(?APP, password_hash),
-    emqx_access_control:register_mod(auth, emqx_auth_redis, {AuthCmd, SuperCmd, PasswdHash}).
+    {ok, HashType} = application:get_env(?APP, password_hash),
+    emqx_access_control:register_mod(auth, emqx_auth_redis, {AuthCmd, SuperCmd, HashType}).
 
 reg_aclmod(AclCmd) ->
     emqx_access_control:register_mod(acl, emqx_acl_redis, AclCmd).

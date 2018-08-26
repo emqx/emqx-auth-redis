@@ -68,38 +68,38 @@ end_per_suite(Config) ->
 check_auth(Config) ->
     {ok, Connection} = ?POOL(?APP),
     [eredis:q(Connection, ["HMSET", Key|FiledValue]) || {Key, FiledValue} <- ?INIT_AUTH],
-    Plain = #mqtt_client{client_id = <<"client1">>, username = <<"plain">>},
-    Md5 = #mqtt_client{client_id = <<"md5">>, username = <<"md5">>},
-    Sha = #mqtt_client{client_id = <<"sha">>, username = <<"sha">>},
-    Sha256 = #mqtt_client{client_id = <<"sha256">>, username = <<"sha256">>},
-    Pbkdf2 = #mqtt_client{client_id = <<"pbkdf2_password">>, username = <<"pbkdf2_password">>},
-    Bcrypt = #mqtt_client{client_id = <<"bcrypt_foo">>, username = <<"bcrypt_foo">>},
-    User1 = #mqtt_client{client_id = <<"bcrypt_foo">>, username = <<"user">>},
-    User3 = #mqtt_client{client_id = <<"client3">>},
-    {error, username_or_password_undefined} = emqx_access_control:auth(User3, <<>>),
+    Plain = #{client_id => <<"client1">>, username => <<"plain">>},
+    Md5 = #{client_id => <<"md5">>, username => <<"md5">>},
+    Sha = #{client_id => <<"sha">>, username => <<"sha">>},
+    Sha256 = #{client_id => <<"sha256">>, username => <<"sha256">>},
+    Pbkdf2 = #{client_id => <<"pbkdf2_password">>, username => <<"pbkdf2_password">>},
+    Bcrypt = #{client_id => <<"bcrypt_foo">>, username => <<"bcrypt_foo">>},
+    User1 = #{client_id => <<"bcrypt_foo">>, username => <<"user">>},
+    User3 = #{client_id => <<"client3">>},
+    {error, username_or_password_undefined} = emqx_access_control:authenticate(User3, <<>>),
     reload([{password_hash, plain}]),
-    {ok, true} = emqx_access_control:auth(Plain, <<"plain">>),
+    {ok, true} = emqx_access_control:authenticate(Plain, <<"plain">>),
     reload([{password_hash, md5}]),
-    {ok, false} = emqx_access_control:auth(Md5, <<"md5">>),
+    {ok, false} = emqx_access_control:authenticate(Md5, <<"md5">>),
     reload([{password_hash, sha}]),
-    {ok, false} = emqx_access_control:auth(Sha, <<"sha">>),
+    {ok, false} = emqx_access_control:authenticate(Sha, <<"sha">>),
     reload([{password_hash, sha256}]),
-    {ok, false} = emqx_access_control:auth(Sha256, <<"sha256">>),
+    {ok, false} = emqx_access_control:authenticate(Sha256, <<"sha256">>),
     %%pbkdf2 sha
     reload([{password_hash, {pbkdf2, sha, 1, 16}}, {auth_cmd, "HMGET mqtt_user:%u password salt"}]),
-    {ok, false} = emqx_access_control:auth(Pbkdf2, <<"password">>),
+    {ok, false} = emqx_access_control:authenticate(Pbkdf2, <<"password">>),
     reload([{password_hash, {salt, bcrypt}}]),
-    {ok, false} = emqx_access_control:auth(Bcrypt, <<"foo">>),
-    ok = emqx_access_control:auth(User1, <<"foo">>).
+    {ok, false} = emqx_access_control:authenticate(Bcrypt, <<"foo">>),
+    ok = emqx_access_control:authenticate(User1, <<"foo">>).
 
 list_auth(_Config) ->
     application:start(emqx_auth_username),
     emqx_auth_username:add_user(<<"user1">>, <<"password1">>),
-    User1 = #mqtt_client{client_id = <<"client1">>, username = <<"user1">>},
-    ok = emqx_access_control:auth(User1, <<"password1">>),
+    User1 = #{client_id => <<"client1">>, username => <<"user1">>},
+    ok = emqx_access_control:authenticate(User1, <<"password1">>),
     reload([{password_hash, plain}, {auth_cmd, "HMGET mqtt_user:%u password"}]),
-    Plain = #mqtt_client{client_id = <<"client1">>, username = <<"plain">>},
-    {ok, true} = emqx_access_control:auth(Plain, <<"plain">>),
+    Plain = #{client_id => <<"client1">>, username => <<"plain">>},
+    {ok, true} = emqx_access_control:authenticate(Plain, <<"plain">>),
     Stop = application:stop(emqx_auth_username),
     ct:log("Stop:~p~n", [Stop]).
 
@@ -108,16 +108,16 @@ check_auth_hget(Config) ->
     eredis:q(Connection, ["HSET", "mqtt_user:hset", "password", "hset"]),
     eredis:q(Connection, ["HSET", "mqtt_user:hset", "is_superuser", "1"]),
     reload([{password_hash, plain}, {auth_cmd, "HGET mqtt_user:%u password"}]),
-    Hset = #mqtt_client{client_id = <<"hset">>, username = <<"hset">>},
-    {ok, true} = emqx_access_control:auth(Hset, <<"hset">>).
+    Hset = #{client_id => <<"hset">>, username => <<"hset">>},
+    {ok, true} = emqx_access_control:authenticate(Hset, <<"hset">>).
 
 check_acl(Config) ->
     {ok, Connection} = ?POOL(?APP),
     Result = [eredis:q(Connection, ["HSET", Key, Filed, Value]) || {Key, Filed, Value} <- ?INIT_ACL],
-    User1 = #mqtt_client{client_id = <<"client1">>, username = <<"test1">>},
-    User2 = #mqtt_client{client_id = <<"client2">>, username = <<"test2">>},
-    User3 = #mqtt_client{client_id = <<"client3">>, username = <<"test3">>},
-    User4 = #mqtt_client{client_id = <<"client4">>, username = <<"$$user4">>},
+    User1 = #{client_id => <<"client1">>, username => <<"test1">>},
+    User2 = #{client_id => <<"client2">>, username => <<"test2">>},
+    User3 = #{client_id => <<"client3">>, username => <<"test3">>},
+    User4 = #{client_id => <<"client4">>, username => <<"$$user4">>},
     deny = emqx_access_control:check_acl(User1, subscribe, <<"topic1">>),
     allow = emqx_access_control:check_acl(User1, publish, <<"topic1">>),
 
@@ -129,13 +129,17 @@ check_acl(Config) ->
 
 acl_super(_Config) ->
     reload([{password_hash, plain}]),
-    {ok, C} = emqx_client:start_link([{host, "localhost"}, {client_id, <<"simpleClient">>}, {username, <<"plain">>}, {password, <<"plain">>}]),
+    {ok, C} = emqx_client:start_link([{host,      "localhost"},
+                                      {client_id, <<"simpleClient">>},
+                                      {username,  <<"plain">>},
+                                      {password,  <<"plain">>}]),
     timer:sleep(10),
     emqx_client:subscribe(C, <<"TopicA">>, qos2),
     timer:sleep(1000),
     emqx_client:publish(C, <<"TopicA">>, <<"Payload">>, qos2),
     timer:sleep(1000),
     receive
+        %% TODO: 3.0 ???
         {publish, Topic, Payload} ->
         ?assertEqual(<<"Payload">>, Payload)
     after

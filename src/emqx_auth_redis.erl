@@ -1,5 +1,4 @@
-%%--------------------------------------------------------------------
-%% Copyright (c) 2013-2018 EMQ Enterprise, Inc. (http://emqtt.io)
+%% Copyright (c) 2018 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,7 +11,6 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%%--------------------------------------------------------------------
 
 -module(emqx_auth_redis).
 
@@ -24,21 +22,19 @@
 
 -define(UNDEFINED(S), (S =:= undefined)).
 
--record(state, {auth_cmd, super_cmd, hash_type}).
-
 init({AuthCmd, SuperCmd, HashType}) ->
-    {ok, #state{auth_cmd = AuthCmd, super_cmd = SuperCmd, hash_type = HashType}}.
+    {ok, #{auth_cmd => AuthCmd, super_cmd => SuperCmd, hash_type => HashType}}.
 
-check(#mqtt_client{username = Username}, Password, _State)
+check(#{username := Username}, Password, _State)
     when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
     {error, username_or_password_undefined};
 
-check(Client, Password, #state{auth_cmd  = AuthCmd,
-                               super_cmd = SuperCmd,
-                               hash_type = HashType}) ->
-    Result = case emqx_auth_redis_cli:q(AuthCmd, Client) of
+check(Credetials, Password, #{auth_cmd  := AuthCmd,
+                              super_cmd := SuperCmd,
+                              hash_type := HashType}) ->
+    Result = case emqx_auth_redis_cli:q(AuthCmd, Credetials) of
                 {ok, PassHash} when is_binary(PassHash) ->
-                    check_pass(PassHash, Password, HashType);  
+                    check_pass(PassHash, Password, HashType);
                 {ok, [undefined|_]} ->
                     ignore;
                 {ok, [PassHash]} ->
@@ -48,31 +44,29 @@ check(Client, Password, #state{auth_cmd  = AuthCmd,
                 {error, Reason} ->
                     {error, Reason}
              end,
-    case Result of ok -> {ok, is_superuser(SuperCmd, Client)}; Error -> Error end.
+    case Result of ok -> {ok, is_superuser(SuperCmd, Credetials)}; Error -> Error end.
 
 check_pass(PassHash, Password, HashType) ->
-    check_pass(PassHash, hash(HashType, Password)).
+    check_pass(PassHash, emqx_passwd:hash(HashType, Password)).
 check_pass(PassHash, Salt, Password, {pbkdf2, Macfun, Iterations, Dklen}) ->
-  check_pass(PassHash, hash(pbkdf2, {Salt, Password, Macfun, Iterations, Dklen}));
+  check_pass(PassHash, emqx_passwd:hash(pbkdf2, {Salt, Password, Macfun, Iterations, Dklen}));
 check_pass(PassHash, Salt, Password, {salt, bcrypt}) ->
-    check_pass(PassHash, hash(bcrypt, {Salt, Password}));
+    check_pass(PassHash, emqx_passwd:hash(bcrypt, {Salt, Password}));
 check_pass(PassHash, Salt, Password, {salt, HashType}) ->
-    check_pass(PassHash, hash(HashType, <<Salt/binary, Password/binary>>));
+    check_pass(PassHash, emqx_passwd:hash(HashType, <<Salt/binary, Password/binary>>));
 check_pass(PassHash, Salt, Password, {HashType, salt}) ->
-    check_pass(PassHash, hash(HashType, <<Password/binary, Salt/binary>>)).
+    check_pass(PassHash, emqx_passwd:hash(HashType, <<Password/binary, Salt/binary>>)).
 
 check_pass(PassHash, PassHash) -> ok;
 check_pass(_, _)               -> {error, password_error}.
 
 description() -> "Authentication with Redis".
 
-hash(Type, Password) -> emqx_auth_mod:passwd_hash(Type, Password).
-
--spec(is_superuser(undefined | list(), mqtt_client()) -> boolean()).
-is_superuser(undefined, _Client) ->
+-spec(is_superuser(undefined | list(), emqx_types:credentials()) -> boolean()).
+is_superuser(undefined, _Credentials) ->
     false;
-is_superuser(SuperCmd, Client) ->
-    case emqx_auth_redis_cli:q(SuperCmd, Client) of
+is_superuser(SuperCmd, Credentials) ->
+    case emqx_auth_redis_cli:q(SuperCmd, Credentials) of
         {ok, undefined} -> false;
         {ok, <<"1">>}   -> true;
         {ok, _Other}    -> false;

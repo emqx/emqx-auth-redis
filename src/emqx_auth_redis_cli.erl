@@ -39,12 +39,13 @@ connect(Opts) ->
     eredis:start_link(Host, ?ENV(port, Opts), ?ENV(database, Opts), ?ENV(password, Opts), no_reconnect).
 
 %% Redis Query.
--spec(q(string(), mqtt_client()) -> {ok, undefined | binary() | list()} | {error, atom() | binary()}).
-q(CmdStr, Client) ->
-    Cmd = string:tokens(replvar(CmdStr, Client), " "),
+-spec(q(string(), emqx_types:credentials())
+      -> {ok, undefined | binary() | list()} | {error, atom() | binary()}).
+q(CmdStr, Credentials) ->
+    Cmd = string:tokens(replvar(CmdStr, Credentials), " "),
     ecpool:with_client(?APP, fun(C) -> eredis:q(C, Cmd) end).
 
-replvar(Cmd, #mqtt_client{client_id = ClientId, username = Username}) ->
+replvar(Cmd, #{client_id := ClientId, username := Username}) ->
     replvar(replvar(Cmd, "%u", Username), "%c", ClientId).
 
 replvar(S, _Var, undefined) ->

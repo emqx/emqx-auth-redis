@@ -4,15 +4,16 @@ PROJECT = emqx_auth_redis
 PROJECT_DESCRIPTION = EMQ X Authentication/ACL with Redis
 PROJECT_VERSION = 3.0
 
-DEPS = eredis ecpool clique
+DEPS = eredis ecpool clique emqx_passwd
 
 ##TODO: version or tag?
 dep_eredis = git https://github.com/turtleDeng/eredis.git
 dep_ecpool = git https://github.com/emqx/ecpool master
 dep_clique = git https://github.com/emqx/clique
+dep_emqx_passwd = git https://github.com/emqx/emqx-passwd emqx30
 
 BUILD_DEPS = emqx cuttlefish
-dep_emqx = git https://github.com:emqtt/emqttd emqx30
+dep_emqx = git https://github.com/emqtt/emqttd emqx30
 dep_cuttlefish = git https://github.com/emqx/cuttlefish
 
 NO_AUTOPATCH = cuttlefish

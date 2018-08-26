@@ -14,9 +14,9 @@
 
 -module(emqx_auth_redis_cfg).
 
--export([register/0, unregister/0]).
+-include("emqx_auth_redis.hrl").
 
--define(APP, emqx_auth_redis).
+-export([register/0, unregister/0]).
 
 register() ->
     clique_config:load_schema([code:priv_dir(?APP)], ?APP),
