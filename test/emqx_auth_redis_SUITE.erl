@@ -22,7 +22,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("emqx_auth_redis.hrl").
+-define(APP, emqx_auth_redis).
 
 -define(POOL(App), ecpool_worker:client(gproc_pool:pick_worker({ecpool, App}))).
 
@@ -40,15 +40,16 @@
 all() ->
     [{group, emqx_auth_redis_auth},
      {group, emqx_auth_redis_acl},
-     {group, emqx_auth_redis},
-     {group, auth_redis_config}
+     {group, emqx_auth_redis}
+     %{group, auth_redis_config}
     ].
 
 groups() ->
     [{emqx_auth_redis_auth, [sequence], [check_auth, list_auth, check_auth_hget]},
      {emqx_auth_redis_acl, [sequence], [check_acl, acl_super]},
      {emqx_auth_redis, [sequence], [comment_config]},
-     {auth_redis_config, [sequence], [server_config]}].
+     {auth_redis_config, [sequence], [server_config]}
+     ].
 
 init_per_suite(Config) ->
     DataDir = proplists:get_value(data_dir, Config),
@@ -56,7 +57,7 @@ init_per_suite(Config) ->
     ct:log("Apps:~p", [Apps]),
     Config.
 
-end_per_suite(Config) ->
+end_per_suite(_Config) ->
     {ok, Connection} = ?POOL(?APP),
     AuthKeys = [Key || {Key, _Filed, _Value} <- ?INIT_AUTH],
     AclKeys = [Key || {Key, _Value} <- ?INIT_ACL],
@@ -65,7 +66,7 @@ end_per_suite(Config) ->
     application:stop(emqx_auth_redis),
     application:stop(ecpool).
 
-check_auth(Config) ->
+check_auth(_Config) ->
     {ok, Connection} = ?POOL(?APP),
     [eredis:q(Connection, ["HMSET", Key|FiledValue]) || {Key, FiledValue} <- ?INIT_AUTH],
     Plain = #{client_id => <<"client1">>, username => <<"plain">>},
@@ -76,21 +77,21 @@ check_auth(Config) ->
     Bcrypt = #{client_id => <<"bcrypt_foo">>, username => <<"bcrypt_foo">>},
     User1 = #{client_id => <<"bcrypt_foo">>, username => <<"user">>},
     User3 = #{client_id => <<"client3">>},
-    {error, username_or_password_undefined} = emqx_access_control:authenticate(User3, <<>>),
+    {error, _} = emqx_access_control:authenticate(User3, <<>>),
     reload([{password_hash, plain}]),
-    {ok, true} = emqx_access_control:authenticate(Plain, <<"plain">>),
+    {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Plain, <<"plain">>),
     reload([{password_hash, md5}]),
-    {ok, false} = emqx_access_control:authenticate(Md5, <<"md5">>),
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Md5, <<"md5">>),
     reload([{password_hash, sha}]),
-    {ok, false} = emqx_access_control:authenticate(Sha, <<"sha">>),
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Sha, <<"sha">>),
     reload([{password_hash, sha256}]),
-    {ok, false} = emqx_access_control:authenticate(Sha256, <<"sha256">>),
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Sha256, <<"sha256">>),
     %%pbkdf2 sha
     reload([{password_hash, {pbkdf2, sha, 1, 16}}, {auth_cmd, "HMGET mqtt_user:%u password salt"}]),
-    {ok, false} = emqx_access_control:authenticate(Pbkdf2, <<"password">>),
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Pbkdf2, <<"password">>),
     reload([{password_hash, {salt, bcrypt}}]),
-    {ok, false} = emqx_access_control:authenticate(Bcrypt, <<"foo">>),
-    ok = emqx_access_control:authenticate(User1, <<"foo">>).
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Bcrypt, <<"foo">>),
+    {error,_} = emqx_access_control:authenticate(User1, <<"foo">>).
 
 list_auth(_Config) ->
     application:start(emqx_auth_username),
@@ -99,25 +100,26 @@ list_auth(_Config) ->
     ok = emqx_access_control:authenticate(User1, <<"password1">>),
     reload([{password_hash, plain}, {auth_cmd, "HMGET mqtt_user:%u password"}]),
     Plain = #{client_id => <<"client1">>, username => <<"plain">>},
-    {ok, true} = emqx_access_control:authenticate(Plain, <<"plain">>),
+    {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Plain, <<"plain">>),
     Stop = application:stop(emqx_auth_username),
     ct:log("Stop:~p~n", [Stop]).
 
-check_auth_hget(Config) ->
+check_auth_hget(_Config) ->
     {ok, Connection} = ?POOL(?APP),
     eredis:q(Connection, ["HSET", "mqtt_user:hset", "password", "hset"]),
     eredis:q(Connection, ["HSET", "mqtt_user:hset", "is_superuser", "1"]),
     reload([{password_hash, plain}, {auth_cmd, "HGET mqtt_user:%u password"}]),
     Hset = #{client_id => <<"hset">>, username => <<"hset">>},
-    {ok, true} = emqx_access_control:authenticate(Hset, <<"hset">>).
+    {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Hset, <<"hset">>).
 
-check_acl(Config) ->
+check_acl(_Config) ->
     {ok, Connection} = ?POOL(?APP),
     Result = [eredis:q(Connection, ["HSET", Key, Filed, Value]) || {Key, Filed, Value} <- ?INIT_ACL],
-    User1 = #{client_id => <<"client1">>, username => <<"test1">>},
-    User2 = #{client_id => <<"client2">>, username => <<"test2">>},
-    User3 = #{client_id => <<"client3">>, username => <<"test3">>},
-    User4 = #{client_id => <<"client4">>, username => <<"$$user4">>},
+    ct:pal("redis init result: ~p~n", [Result]),
+    User1 = #{zone => external, client_id => <<"client1">>, username => <<"test1">>},
+    User2 = #{zone => external, client_id => <<"client2">>, username => <<"test2">>},
+    User3 = #{zone => external, client_id => <<"client3">>, username => <<"test3">>},
+    User4 = #{zone => external, client_id => <<"client4">>, username => <<"$$user4">>},
     deny = emqx_access_control:check_acl(User1, subscribe, <<"topic1">>),
     allow = emqx_access_control:check_acl(User1, publish, <<"topic1">>),
 
@@ -129,7 +131,7 @@ check_acl(Config) ->
 
 acl_super(_Config) ->
     reload([{password_hash, plain}]),
-    {ok, C} = emqx_client:start_link([{host,      "localhost"},
+    {ok, C, _} = emqx_client:start_link([{host,      "localhost"},
                                       {client_id, <<"simpleClient">>},
                                       {username,  <<"plain">>},
                                       {password,  <<"plain">>}]),
@@ -140,7 +142,7 @@ acl_super(_Config) ->
     timer:sleep(1000),
     receive
         %% TODO: 3.0 ???
-        {publish, Topic, Payload} ->
+        {publish, _Topic, Payload} ->
         ?assertEqual(<<"Payload">>, Payload)
     after
         1000 ->
@@ -190,4 +192,3 @@ reload(Config) when is_list(Config) ->
     application:stop(?APP),
     [application:set_env(?APP, K, V) || {K, V} <- Config],
     application:start(?APP).
-

@@ -46,10 +46,13 @@ q(CmdStr, Credentials) ->
     ecpool:with_client(?APP, fun(C) -> eredis:q(C, Cmd) end).
 
 replvar(Cmd, #{client_id := ClientId, username := Username}) ->
-    replvar(replvar(Cmd, "%u", Username), "%c", ClientId).
+    replvar(replvar(Cmd, "%u", Username), "%c", ClientId);
+replvar(Cmd, #{client_id := ClientId}) ->
+    replvar(Cmd, "%c", ClientId);
+replvar(Cmd, #{username := Username}) ->
+    replvar(Cmd, "%u", Username).
 
 replvar(S, _Var, undefined) ->
     S;
 replvar(S, Var, Val) ->
     re:replace(S, Var, Val, [{return, list}]).
-
