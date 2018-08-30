@@ -7,7 +7,7 @@ PROJECT_VERSION = 3.0
 DEPS = eredis ecpool clique emqx_passwd
 
 ##TODO: version or tag?
-dep_eredis = git https://github.com/turtleDeng/eredis.git
+dep_eredis = git https://github.com/emqx/eredis 1.1.0
 dep_ecpool = git https://github.com/emqx/ecpool master
 dep_clique = git https://github.com/emqx/clique
 dep_emqx_passwd = git https://github.com/emqx/emqx-passwd emqx30
