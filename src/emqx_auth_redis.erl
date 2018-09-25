@@ -34,31 +34,17 @@ check(Credetials, Password, #{auth_cmd  := AuthCmd,
                               hash_type := HashType}) ->
     Result = case emqx_auth_redis_cli:q(AuthCmd, Credetials) of
                 {ok, PassHash} when is_binary(PassHash) ->
-                    check_pass(PassHash, Password, HashType);
+                    emqx_passwd:check_pass({PassHash, Password}, HashType);
                 {ok, [undefined|_]} ->
                     ignore;
                 {ok, [PassHash]} ->
-                    check_pass(PassHash, Password, HashType);
+                    emqx_passwd:check_pass({PassHash, Password}, HashType);
                 {ok, [PassHash, Salt|_]} ->
-                    check_pass(PassHash, Salt, Password, HashType);
+                    emqx_passwd:check_pass({PassHash, Salt, Password}, HashType);
                 {error, Reason} ->
                     {error, Reason}
              end,
     case Result of ok -> {ok, is_superuser(SuperCmd, Credetials)}; Error -> Error end.
-
-check_pass(PassHash, Password, HashType) ->
-    check_pass(PassHash, emqx_passwd:hash(HashType, Password)).
-check_pass(PassHash, Salt, Password, {pbkdf2, Macfun, Iterations, Dklen}) ->
-  check_pass(PassHash, emqx_passwd:hash(pbkdf2, {Salt, Password, Macfun, Iterations, Dklen}));
-check_pass(PassHash, Salt, Password, {salt, bcrypt}) ->
-    check_pass(PassHash, emqx_passwd:hash(bcrypt, {Salt, Password}));
-check_pass(PassHash, Salt, Password, {salt, HashType}) ->
-    check_pass(PassHash, emqx_passwd:hash(HashType, <<Salt/binary, Password/binary>>));
-check_pass(PassHash, Salt, Password, {HashType, salt}) ->
-    check_pass(PassHash, emqx_passwd:hash(HashType, <<Password/binary, Salt/binary>>)).
-
-check_pass(PassHash, PassHash) -> ok;
-check_pass(_, _)               -> {error, password_error}.
 
 description() -> "Authentication with Redis".
 
