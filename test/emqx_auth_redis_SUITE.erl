@@ -35,7 +35,8 @@
                     {"mqtt_user:sha", ["password", "d8f4590320e1343a915b6394170650a8f35d6926", "salt", "salt", "is_superuser", "0"]},
                     {"mqtt_user:sha256", ["password", "5d5b09f6dcb2d53a5fffc60c4ac0d55fabdf556069d6631545f42aa6e3500f2e", "salt", "salt", "is_superuser", "0"]},
                     {"mqtt_user:pbkdf2_password", ["password", "cdedb5281bb2f801565a1122b2563515", "salt", "ATHENA.MIT.EDUraeburn", "is_superuser", "0"]},
-                    {"mqtt_user:bcrypt_foo", ["password", "$2a$12$sSS8Eg.ovVzaHzi1nUHYK.HbUIOdlQI0iS22Q5rd5z.JVVYH6sfm6", "salt", "$2a$12$sSS8Eg.ovVzaHzi1nUHYK.", "is_superuser", "0"]}]).
+                    {"mqtt_user:bcrypt_foo", ["password", "$2a$12$sSS8Eg.ovVzaHzi1nUHYK.HbUIOdlQI0iS22Q5rd5z.JVVYH6sfm6", "salt", "$2a$12$sSS8Eg.ovVzaHzi1nUHYK.", "is_superuser", "0"]},
+                    {"mqtt_user:bcrypt", ["password", "$2y$16$rEVsDarhgHYB0TGnDFJzyu5f.T.Ha9iXMTk9J36NCMWWM7O16qyaK", "salt", "salt", "is_superuser", "0"]}]).
 
 all() ->
     [{group, emqx_auth_redis_auth},
@@ -74,9 +75,10 @@ check_auth(_Config) ->
     Sha = #{client_id => <<"sha">>, username => <<"sha">>},
     Sha256 = #{client_id => <<"sha256">>, username => <<"sha256">>},
     Pbkdf2 = #{client_id => <<"pbkdf2_password">>, username => <<"pbkdf2_password">>},
-    Bcrypt = #{client_id => <<"bcrypt_foo">>, username => <<"bcrypt_foo">>},
+    BcryptFoo = #{client_id => <<"bcrypt_foo">>, username => <<"bcrypt_foo">>},
     User1 = #{client_id => <<"bcrypt_foo">>, username => <<"user">>},
     User3 = #{client_id => <<"client3">>},
+    Bcrypt = #{client_id => <<"bcrypt">>, username => <<"bcrypt">>},
     {error, _} = emqx_access_control:authenticate(User3, <<>>),
     reload([{password_hash, plain}]),
     {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Plain, <<"plain">>),
@@ -86,12 +88,15 @@ check_auth(_Config) ->
     {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Sha, <<"sha">>),
     reload([{password_hash, sha256}]),
     {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Sha256, <<"sha256">>),
+    reload([{password_hash, bcrypt}]),
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Bcrypt, <<"password">>),
     %%pbkdf2 sha
     reload([{password_hash, {pbkdf2, sha, 1, 16}}, {auth_cmd, "HMGET mqtt_user:%u password salt"}]),
     {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Pbkdf2, <<"password">>),
     reload([{password_hash, {salt, bcrypt}}]),
-    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Bcrypt, <<"foo">>),
-    {error,_} = emqx_access_control:authenticate(User1, <<"foo">>).
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(BcryptFoo, <<"foo">>),
+    {error,_} = emqx_access_control:authenticate(User1, <<"foo">>),
+    {error, password_error} = emqx_access_control:authenticate(Bcrypt, <<"password">>).
 
 list_auth(_Config) ->
     application:start(emqx_auth_username),
