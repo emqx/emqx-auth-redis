@@ -22,12 +22,10 @@ TEST_DEPS = emqx_auth_username
 dep_emqx_auth_username = git https://github.com/emqx/emqx-auth-username emqx30
 
 TEST_ERLC_OPTS += +debug_info
-TEST_ERLC_OPTS += +'{parse_transform, lager_transform}'
 
 COVER = true
 
 ERLC_OPTS += +debug_info
-ERLC_OPTS += +'{parse_transform, lager_transform}'
 
 include erlang.mk
 
