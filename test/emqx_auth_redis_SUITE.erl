@@ -136,10 +136,11 @@ check_acl(_Config) ->
 
 acl_super(_Config) ->
     reload([{password_hash, plain}]),
-    {ok, C, _} = emqx_client:start_link([{host,      "localhost"},
+    {ok, C} = emqx_client:start_link([{host,      "localhost"},
                                       {client_id, <<"simpleClient">>},
                                       {username,  <<"plain">>},
                                       {password,  <<"plain">>}]),
+    {ok, _} = emqx_client:connect(C),
     timer:sleep(10),
     emqx_client:subscribe(C, <<"TopicA">>, qos2),
     timer:sleep(1000),
