@@ -10,7 +10,7 @@ DEPS = eredis ecpool clique emqx_passwd
 dep_eredis = git-emqx https://github.com/emqx/eredis 1.1.0
 dep_ecpool = git-emqx https://github.com/emqx/ecpool v0.3.0
 dep_clique = git-emqx https://github.com/emqx/clique v0.3.11
-dep_emqx_passwd = git-emqx https://github.com/emqx/emqx-passwd v2.1
+dep_emqx_passwd = git-emqx https://github.com/emqx/emqx-passwd v1.0
 
 BUILD_DEPS = emqx cuttlefish
 dep_emqx = git-emqx https://github.com/emqtt/emqttd emqx30

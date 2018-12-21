@@ -15,3 +15,5 @@ data
 emqx_auth_redis.d
 cover/
 eunit.coverdata
+_build/
+rebar.lock
