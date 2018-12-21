@@ -53,9 +53,12 @@ groups() ->
      ].
 
 init_per_suite(Config) ->
-    DataDir = proplists:get_value(data_dir, Config),
-    Apps = [start_apps(App, DataDir) || App <- [emqx, emqx_auth_redis]],
-    ct:log("Apps:~p", [Apps]),
+    [start_apps(App, {SchemaFile, ConfigFile}) ||
+        {App, SchemaFile, ConfigFile}
+            <- [{emqx, local_path("deps/emqx/priv/emqx.schema"),
+                       local_path("deps/emqx/etc/emqx.conf")},
+                {emqx_auth_redis, local_path("priv/emqx_auth_redis.schema"),
+                                  local_path("etc/emqx_auth_redis.conf")}]],
     Config.
 
 end_per_suite(_Config) ->
@@ -66,6 +69,33 @@ end_per_suite(_Config) ->
     eredis:q(Connection, ["DEL" | AclKeys]),
     application:stop(emqx_auth_redis),
     application:stop(ecpool).
+
+get_base_dir() ->
+    {file, Here} = code:is_loaded(?MODULE),
+    filename:dirname(filename:dirname(Here)).
+
+local_path(RelativePath) ->
+    filename:join([get_base_dir(), RelativePath]).
+
+start_apps(App, {SchemaFile, ConfigFile}) ->
+    read_schema_configs(App, {SchemaFile, ConfigFile}),
+    set_special_configs(App),
+    application:ensure_all_started(App).
+
+read_schema_configs(App, {SchemaFile, ConfigFile}) ->
+    ct:pal("Read configs - SchemaFile: ~p, ConfigFile: ~p", [SchemaFile, ConfigFile]),
+    Schema = cuttlefish_schema:files([SchemaFile]),
+    Conf = conf_parse:file(ConfigFile),
+    NewConfig = cuttlefish_generator:map(Schema, Conf),
+    Vals = proplists:get_value(App, NewConfig, []),
+    [application:set_env(App, Par, Value) || {Par, Value} <- Vals].
+
+set_special_configs(emqx) ->
+    application:set_env(emqx, allow_anonymous, false),
+    application:set_env(emqx, plugins_loaded_file,
+                        local_path("deps/emqx/test/emqx_SUITE_data/loaded_plugins"));
+set_special_configs(_App) ->
+    ok.
 
 check_auth(_Config) ->
     {ok, Connection} = ?POOL(?APP),
@@ -185,14 +215,6 @@ server_config(_) ->
 
 set_cmd(Key) ->
     emqx_cli_config:run(["config", "set", string:join(["auth.redis", Key], "."), "--app=emqx_auth_redis"]).
-
-start_apps(App, DataDir) ->
-    Schema = cuttlefish_schema:files([filename:join([DataDir, atom_to_list(App) ++ ".schema"])]),
-    Conf = conf_parse:file(filename:join([DataDir, atom_to_list(App) ++ ".conf"])),
-    NewConfig = cuttlefish_generator:map(Schema, Conf),
-    Vals = proplists:get_value(App, NewConfig),
-    [application:set_env(App, Par, Value) || {Par, Value} <- Vals],
-    application:ensure_all_started(App).
 
 reload(Config) when is_list(Config) ->
     application:stop(?APP),
