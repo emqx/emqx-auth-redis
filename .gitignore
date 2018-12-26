@@ -12,7 +12,8 @@ ebin/
 *.plt
 erl_crash.dump
 data
-emq_auth_redis.d
-.DS_Store
+emqx_auth_redis.d
 cover/
 eunit.coverdata
+_build/
+rebar.lock
