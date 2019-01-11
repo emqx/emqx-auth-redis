@@ -56,7 +56,7 @@ init_per_suite(Config) ->
     [start_apps(App, {SchemaFile, ConfigFile}) ||
         {App, SchemaFile, ConfigFile}
             <- [{emqx, local_path("deps/emqx/priv/emqx.schema"),
-                       local_path("deps/emqx/etc/emqx.conf")},
+                       local_path("deps/emqx/etc/gen.emqx.conf")},
                 {emqx_auth_redis, local_path("priv/emqx_auth_redis.schema"),
                                   local_path("etc/emqx_auth_redis.conf")}]],
     Config.
@@ -178,11 +178,11 @@ acl_super(_Config) ->
     timer:sleep(1000),
     receive
         %% TODO: 3.0 ???
-        {publish, _Topic, Payload} ->
+        {publish, #{payload := Payload}} ->
         ?assertEqual(<<"Payload">>, Payload)
     after
         1000 ->
-        io:format("Error: receive timeout!~n"),
+        ct:fail("Error: receive timeout!~n"),
         ok
     end,
     emqx_client:disconnect(C).
