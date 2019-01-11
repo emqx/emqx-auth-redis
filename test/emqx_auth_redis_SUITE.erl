@@ -56,7 +56,7 @@ init_per_suite(Config) ->
     [start_apps(App, {SchemaFile, ConfigFile}) ||
         {App, SchemaFile, ConfigFile}
             <- [{emqx, local_path("deps/emqx/priv/emqx.schema"),
-                       local_path("deps/emqx/etc/gen.emqx.conf")},
+                       local_path("deps/emqx/etc/emqx.conf")},
                 {emqx_auth_redis, local_path("priv/emqx_auth_redis.schema"),
                                   local_path("etc/emqx_auth_redis.conf")}]],
     Config.
