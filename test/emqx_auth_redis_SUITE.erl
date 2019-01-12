@@ -182,8 +182,8 @@ acl_super(_Config) ->
         ?assertEqual(<<"Payload">>, Payload)
     after
         1000 ->
-        ct:fail("Error: receive timeout!~n"),
-        ok
+            ct:fail({receive_timeout, <<"Payload">>}),      
+            ok
     end,
     emqx_client:disconnect(C).
 
