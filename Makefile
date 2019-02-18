@@ -2,7 +2,6 @@
 
 PROJECT = emqx_auth_redis
 PROJECT_DESCRIPTION = EMQ X Authentication/ACL with Redis
-PROJECT_VERSION = 3.1
 
 DEPS = eredis ecpool clique emqx_passwd
 
