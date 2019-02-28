@@ -20,7 +20,7 @@
 
 -include_lib("emqx/include/emqx.hrl").
 
--define(ENV(Key, Opts), proplists:get_value(Key, Opts)).
+-import(proplists, [get_value/2, get_value/3]).
 
 -export([connect/1, q/2]).
 
@@ -29,21 +29,29 @@
 %%--------------------------------------------------------------------
 
 connect(Opts) ->
-    Sentinel = ?ENV(sentinel, Opts),
+    Sentinel = get_value(sentinel, Opts),
     Host = case Sentinel =:= "" of
-        true -> ?ENV(host, Opts);
+        true -> get_value(host, Opts);
         false ->
-            eredis_sentinel:start_link([{?ENV(host, Opts), ?ENV(port, Opts)}]),
+            eredis_sentinel:start_link([{get_value(host, Opts),
+                                         get_value(port, Opts)}]),
             "sentinel:" ++ Sentinel
     end,
-    eredis:start_link(Host, ?ENV(port, Opts), ?ENV(database, Opts), ?ENV(password, Opts), no_reconnect).
+    eredis:start_link(Host,
+                      get_value(port, Opts, 6379),
+                      get_value(database, Opts),
+                      get_value(password, Opts),
+                      no_reconnect).
 
 %% Redis Query.
 -spec(q(string(), emqx_types:credentials())
       -> {ok, undefined | binary() | list()} | {error, atom() | binary()}).
 q(CmdStr, Credentials) ->
     Cmd = string:tokens(replvar(CmdStr, Credentials), " "),
-    ecpool:with_client(?APP, fun(C) -> eredis:q(C, Cmd) end).
+    case get_value(type, application:get_env(?APP, server, [])) of
+        cluster -> eredis_cluster:q(Cmd);
+        _ -> ecpool:with_client(?APP, fun(C) -> eredis:q(C, Cmd) end)
+    end.
 
 replvar(Cmd, #{client_id := ClientId, username := Username}) ->
     replvar(replvar(Cmd, "%u", Username), "%c", ClientId);
