@@ -7,7 +7,7 @@
 ]}.
 
 {mapping, "auth.redis.server", "emqx_auth_redis.server", [
-  {default, {"127.0.0.1", 6379}},
+  {default, "127.0.0.1:6379"},
   {datatype, [string]}
 ]}.
 
