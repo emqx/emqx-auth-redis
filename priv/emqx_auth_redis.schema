@@ -1,9 +1,14 @@
 %%-*- mode: erlang -*-
 %% emqx_auth_redis config mapping
 
+{mapping, "auth.redis.type", "emqx_auth_redis.server", [
+  {default, single},
+  {datatype, {enum, [single, sentinel, cluster]}}
+]}.
+
 {mapping, "auth.redis.server", "emqx_auth_redis.server", [
-  {default, {"127.0.0.1", 6379}},
-  {datatype, [integer, ip, string]}
+  {default, "127.0.0.1:6379"},
+  {datatype, [string]}
 ]}.
 
 {mapping, "auth.redis.sentinel", "emqx_auth_redis.server", [
@@ -29,25 +34,32 @@
 ]}.
 
 {translation, "emqx_auth_redis.server", fun(Conf) ->
-  {RHost, RPort} =
-  case cuttlefish:conf_get("auth.redis.server", Conf) of
-    {Ip, Port} -> {Ip, Port};
-    S          -> case string:tokens(S, ":") of
-                    [Domain]       -> {Domain, 6379};
-                    [Domain, Port] -> {Domain, list_to_integer(Port)}
-                  end
-    end,
+  Fun = fun(S) ->
+    case string:tokens(S, ":") of
+      [Domain]       -> {Domain, 6379};
+      [Domain, Port] -> {Domain, list_to_integer(Port)}
+    end
+  end,
+  Servers = cuttlefish:conf_get("auth.redis.server", Conf),
+  Type = cuttlefish:conf_get("auth.redis.type", Conf),
+  Server = case Type of
+    single ->
+      {Host, Port} = Fun(Servers),
+      [{host, Host}, {port, Port}];
+    _ ->
+      S = string:tokens(Servers, ","),
+      [{servers, [Fun(S1) || S1 <- S]}]
+  end,
   Pool = cuttlefish:conf_get("auth.redis.pool", Conf),
   Passwd = cuttlefish:conf_get("auth.redis.password", Conf),
   DB = cuttlefish:conf_get("auth.redis.database", Conf),
   Sentinel = cuttlefish:conf_get("auth.redis.sentinel", Conf),
-  [{pool_size, Pool},
+  [{type, Type},
+   {pool_size, Pool},
    {auto_reconnect, 1},
-   {host, RHost},
-   {port, RPort},
    {database, DB},
    {password, Passwd},
-   {sentinel, Sentinel}]
+   {sentinel, Sentinel}] ++ Server
 end}.
 
 {mapping, "auth.redis.auth_cmd", "emqx_auth_redis.auth_cmd", [
