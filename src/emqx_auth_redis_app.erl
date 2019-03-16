@@ -29,7 +29,7 @@ start(_StartType, _StartArgs) ->
 
 stop(_State) ->
     emqx:unhook('client.authenticate', fun emqx_auth_redis:check/2),
-    emqx:unhook('client.check_acl', fun emqx_acl_redis:check_acl/4),
+    emqx:unhook('client.check_acl', fun emqx_acl_redis:check_acl/5),
     emqx_auth_redis_cfg:unregister().
 
 load_auth_hook(AuthCmd) ->
