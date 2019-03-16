@@ -26,8 +26,8 @@ check(Credentials = #{username := Username, password := Password}, _Config)
     {ok, Credentials#{result => username_or_password_undefined}};
 
 check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
-                                              super_cmd := SuperCmd,
-                                              hash_type := HashType}) ->
+                                               super_cmd := SuperCmd,
+                                               hash_type := HashType}) ->
     CheckPass = case emqx_auth_redis_cli:q(AuthCmd, Credentials) of
                     {ok, PassHash} when is_binary(PassHash) ->
                         check_pass({PassHash, Password}, HashType);
