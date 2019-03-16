@@ -39,7 +39,7 @@ check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
                         check_pass({PassHash, Salt, Password}, HashType);
                     {error, Reason} ->
                         logger:error("Execute redis command '~p' failed: ~p", [AuthCmd, Reason]),
-                        {error, server_unavailable}
+                        {error, not_found}
                 end,
     case CheckPass of
         ok -> {stop, Credentials#{is_superuser => is_superuser(SuperCmd, Credentials),
@@ -50,7 +50,10 @@ check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
             {stop, Credentials#{result => ResultCode}}
     end;
 
-check(Credentials, _Config) -> {ok, Credentials#{result => username_or_password_undefined}}.
+check(Credentials, Config) ->
+    ResultCode = insufficient_credentials,
+    logger:error("Auth from redis failed: ~p, Configs: ~p", [ResultCode, Config]),
+    {ok, Credentials#{result => ResultCode}}.
 
 
 description() -> "Authentication with Redis".

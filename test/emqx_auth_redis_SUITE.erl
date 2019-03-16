@@ -45,7 +45,7 @@ all() ->
     ].
 
 groups() ->
-    [{emqx_auth_redis_auth, [sequence], [check_auth, list_auth, check_auth_hget]},
+    [{emqx_auth_redis_auth, [sequence], [check_auth, check_auth_hget]},
      {emqx_auth_redis_acl, [sequence], [check_acl, acl_super]},
      {auth_redis_config, [sequence], [server_config]}
      ].
