@@ -3,5 +3,6 @@
               {vsn,"git"},
               {modules,[]},
               {registered,[emqx_auth_redis_sup]},
-              {applications,[kernel,stdlib,eredis,eredis_cluster,ecpool,clique,emqx_passwd]},
+              {applications,[kernel,stdlib,eredis,eredis_cluster,ecpool,
+                             clique,emqx_passwd]},
               {mod,{emqx_auth_redis_app,[]}}]}.
