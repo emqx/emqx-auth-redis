@@ -16,17 +16,17 @@
 
 -include_lib("emqx/include/emqx.hrl").
 
--export([check_acl/4, reload_acl/1, description/0]).
+-export([check_acl/5, reload_acl/1, description/0]).
 
-check_acl(#{username := <<$$, _/binary>>}, _PubSub, _Topic, _State) ->
-    ignore;
-check_acl(Credetials, PubSub, Topic, #{acl_cmd := AclCmd}) ->
+check_acl(#{username := <<$$, _/binary>>}, _PubSub, _Topic, _AclResult, _Config) ->
+    ok;
+check_acl(Credetials, PubSub, Topic, _AclResult, #{acl_cmd := AclCmd}) ->
     case emqx_auth_redis_cli:q(AclCmd, Credetials) of
         {ok, []} -> ok;
         {ok, Rules} ->
             case match(Credetials, PubSub, Topic, Rules) of
-                allow   -> {ok, allow};
-                nomatch -> {ok, deny}
+                allow   -> {stop, allow};
+                nomatch -> {stop, deny}
             end;
         {error, Reason} ->
             emqx_logger:error("Redis check_acl error: ~p", [Reason]),
