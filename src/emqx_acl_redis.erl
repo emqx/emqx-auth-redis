@@ -14,29 +14,23 @@
 
 -module(emqx_acl_redis).
 
--behaviour(emqx_acl_mod).
-
 -include_lib("emqx/include/emqx.hrl").
 
-%% ACL callbacks
--export([init/1, check_acl/2, reload_acl/1, description/0]).
+-export([check_acl/4, reload_acl/1, description/0]).
 
-init(AclCmd) ->
-    {ok, #{acl_cmd => AclCmd}}.
-
-check_acl({#{username := <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
+check_acl(#{username := <<$$, _/binary>>}, _PubSub, _Topic, _State) ->
     ignore;
-check_acl({Credetials, PubSub, Topic}, #{acl_cmd := AclCmd}) ->
+check_acl(Credetials, PubSub, Topic, #{acl_cmd := AclCmd}) ->
     case emqx_auth_redis_cli:q(AclCmd, Credetials) of
-        {ok, []} -> ignore;
+        {ok, []} -> ok;
         {ok, Rules} ->
             case match(Credetials, PubSub, Topic, Rules) of
-                allow   -> allow;
-                nomatch -> deny
+                allow   -> {ok, allow};
+                nomatch -> {ok, deny}
             end;
         {error, Reason} ->
             emqx_logger:error("Redis check_acl error: ~p", [Reason]),
-            ignore
+            ok
     end.
 
 match(_Credetials, _PubSub, _Topic, []) ->

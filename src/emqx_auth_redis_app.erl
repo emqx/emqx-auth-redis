@@ -20,25 +20,30 @@
 
 -export([start/2, stop/1]).
 
+-define(FUNC(M, F, A), {M, F, A}).
+
 start(_StartType, _StartArgs) ->
     {ok, Sup} = emqx_auth_redis_sup:start_link(),
-    if_cmd_enabled(auth_cmd, fun reg_authmod/1),
-    if_cmd_enabled(acl_cmd,  fun reg_aclmod/1),
+    if_cmd_enabled(auth_cmd, fun load_auth_hook/1),
+    if_cmd_enabled(acl_cmd,  fun load_acl_hook/1),
     emqx_auth_redis_cfg:register(),
     {ok, Sup}.
 
 stop(_State) ->
-    emqx_access_control:unregister_mod(auth, emqx_auth_redis),
-    emqx_access_control:unregister_mod(acl, emqx_acl_redis),
+    emqx:unhook('client.authenticate', fun emqx_auth_redis:check/2),
+    emqx:unhook('client.check_acl', fun emqx_acl_redis:check_acl/4),
     emqx_auth_redis_cfg:unregister().
 
-reg_authmod(AuthCmd) ->
+load_auth_hook(AuthCmd) ->
     SuperCmd = application:get_env(?APP, super_cmd, undefined),
     {ok, HashType} = application:get_env(?APP, password_hash),
-    emqx_access_control:register_mod(auth, emqx_auth_redis, {AuthCmd, SuperCmd, HashType}).
+    Params = #{auth_cmd => AuthCmd,
+               super_cmd => SuperCmd,
+               hash_type => HashType},
+    emqx:hook('client.authenticate', fun emqx_auth_redis:check/2, [Params]).
 
-reg_aclmod(AclCmd) ->
-    emqx_access_control:register_mod(acl, emqx_acl_redis, AclCmd).
+load_acl_hook(AclCmd) ->
+    emqx:hook('client.check_acl', fun emqx_acl_redis:check_acl/4, [#{acl_cmd => AclCmd}]).
 
 if_cmd_enabled(Par, Fun) ->
     case application:get_env(?APP, Par) of

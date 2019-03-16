@@ -14,33 +14,29 @@
 
 -module(emqx_auth_redis).
 
--behaviour(emqx_auth_mod).
-
 -include_lib("emqx/include/emqx.hrl").
 
--export([init/1, check/3, description/0]).
+-export([check/2, description/0]).
 
 -define(UNDEFINED(S), (S =:= undefined)).
 
-init({AuthCmd, SuperCmd, HashType}) ->
-    {ok, #{auth_cmd => AuthCmd, super_cmd => SuperCmd, hash_type => HashType}}.
 
-check(#{username := Username}, Password, _State)
+check(#{username := Username, password := Password} , _State)
     when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
     {error, username_or_password_undefined};
 
-check(Credetials, Password, #{auth_cmd  := AuthCmd,
-                              super_cmd := SuperCmd,
-                              hash_type := HashType}) ->
+check(Credetials = #{password := Password}, #{auth_cmd  := AuthCmd,
+                                              super_cmd := SuperCmd,
+                                              hash_type := HashType}) ->
     Result = case emqx_auth_redis_cli:q(AuthCmd, Credetials) of
                 {ok, PassHash} when is_binary(PassHash) ->
-                    emqx_passwd:check_pass({PassHash, Password}, HashType);
+                    check_pass({PassHash, Password}, HashType, Credetials);
                 {ok, [undefined|_]} ->
-                    ignore;
+                    {ok, Credetials};
                 {ok, [PassHash]} ->
-                    emqx_passwd:check_pass({PassHash, Password}, HashType);
+                    check_pass({PassHash, Password}, HashType, Credetials);
                 {ok, [PassHash, Salt|_]} ->
-                    emqx_passwd:check_pass({PassHash, Salt, Password}, HashType);
+                    check_pass({PassHash, Salt, Password}, HashType, Credetials);
                 {error, Reason} ->
                     {error, Reason}
              end,
@@ -49,13 +45,20 @@ check(Credetials, Password, #{auth_cmd  := AuthCmd,
 description() -> "Authentication with Redis".
 
 -spec(is_superuser(undefined | list(), emqx_types:credentials()) -> boolean()).
-is_superuser(undefined, _Credentials) ->
-    false;
+is_superuser(undefined, Credentials) ->
+    Credentials#{is_super => false};
 is_superuser(SuperCmd, Credentials) ->
     case emqx_auth_redis_cli:q(SuperCmd, Credentials) of
-        {ok, undefined} -> false;
-        {ok, <<"1">>}   -> true;
-        {ok, _Other}    -> false;
-        {error, _Error} -> false
+        {ok, undefined} -> Credentials#{is_super => false};
+        {ok, <<"1">>}   -> Credentials#{is_super => true};
+        {ok, _Other}    -> Credentials#{is_super => false};
+        {error, _Error} -> Credentials#{is_super => false}
     end.
+
+check_pass(Password, HashType, Credetials) ->
+    case emqx_passwd:check_pass(Password, HashType) of
+        ok -> {ok, Credetials#{result => success}};
+        {error, Reason} -> {error, Reason}
+    end.
+
 
