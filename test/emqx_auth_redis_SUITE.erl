@@ -40,15 +40,13 @@
 
 all() ->
     [{group, emqx_auth_redis_auth},
-     {group, emqx_auth_redis_acl},
-     {group, emqx_auth_redis}
+     {group, emqx_auth_redis_acl}
      %{group, auth_redis_config}
     ].
 
 groups() ->
     [{emqx_auth_redis_auth, [sequence], [check_auth, list_auth, check_auth_hget]},
      {emqx_auth_redis_acl, [sequence], [check_acl, acl_super]},
-     {emqx_auth_redis, [sequence], [comment_config]},
      {auth_redis_config, [sequence], [server_config]}
      ].
 
@@ -92,6 +90,10 @@ read_schema_configs(App, {SchemaFile, ConfigFile}) ->
 
 set_special_configs(emqx) ->
     application:set_env(emqx, allow_anonymous, false),
+    application:set_env(emqx, acl_nomatch, deny),
+    application:set_env(emqx, acl_file,
+                        local_path("deps/emqx/test/emqx_SUITE_data/acl.conf")),
+    application:set_env(emqx, enable_acl_cache, false),
     application:set_env(emqx, plugins_loaded_file,
                         local_path("deps/emqx/test/emqx_SUITE_data/loaded_plugins"));
 set_special_configs(_App) ->
@@ -109,33 +111,34 @@ check_auth(_Config) ->
     User1 = #{client_id => <<"bcrypt_foo">>, username => <<"user">>},
     User3 = #{client_id => <<"client3">>},
     Bcrypt = #{client_id => <<"bcrypt">>, username => <<"bcrypt">>},
-    {error, _} = emqx_access_control:authenticate(User3, <<>>),
+    {error, _} = emqx_access_control:authenticate(User3),
+    {error, _} = emqx_access_control:authenticate(User3#{password => <<>>}),
     reload([{password_hash, plain}]),
-    {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Plain, <<"plain">>),
+    {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Plain#{password => <<"plain">>}),
     reload([{password_hash, md5}]),
-    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Md5, <<"md5">>),
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Md5#{password => <<"md5">>}),
     reload([{password_hash, sha}]),
-    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Sha, <<"sha">>),
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Sha#{password => <<"sha">>}),
     reload([{password_hash, sha256}]),
-    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Sha256, <<"sha256">>),
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Sha256#{password => <<"sha256">>}),
     reload([{password_hash, bcrypt}]),
-    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Bcrypt, <<"password">>),
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Bcrypt#{password => <<"password">>}),
     %%pbkdf2 sha
     reload([{password_hash, {pbkdf2, sha, 1, 16}}, {auth_cmd, "HMGET mqtt_user:%u password salt"}]),
-    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Pbkdf2, <<"password">>),
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Pbkdf2#{password => <<"password">>}),
     reload([{password_hash, {salt, bcrypt}}]),
-    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(BcryptFoo, <<"foo">>),
-    {error,_} = emqx_access_control:authenticate(User1, <<"foo">>),
-    {error, password_error} = emqx_access_control:authenticate(Bcrypt, <<"password">>).
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(BcryptFoo#{password => <<"foo">>}),
+    {error,_} = emqx_access_control:authenticate(User1#{password => <<"foo">>}),
+    {error, _} = emqx_access_control:authenticate(Bcrypt#{password => <<"password">>}).
 
 list_auth(_Config) ->
     application:start(emqx_auth_username),
     emqx_auth_username:add_user(<<"user1">>, <<"password1">>),
     User1 = #{client_id => <<"client1">>, username => <<"user1">>},
-    ok = emqx_access_control:authenticate(User1, <<"password1">>),
+    {ok, _} = emqx_access_control:authenticate(User1#{password => <<"password1">>}),
     reload([{password_hash, plain}, {auth_cmd, "HMGET mqtt_user:%u password"}]),
     Plain = #{client_id => <<"client1">>, username => <<"plain">>},
-    {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Plain, <<"plain">>),
+    {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Plain#{password => <<"plain">>}),
     Stop = application:stop(emqx_auth_username),
     ct:log("Stop:~p~n", [Stop]).
 
@@ -145,7 +148,7 @@ check_auth_hget(_Config) ->
     eredis:q(Connection, ["HSET", "mqtt_user:hset", "is_superuser", "1"]),
     reload([{password_hash, plain}, {auth_cmd, "HGET mqtt_user:%u password"}]),
     Hset = #{client_id => <<"hset">>, username => <<"hset">>},
-    {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Hset, <<"hset">>).
+    {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Hset#{password => <<"hset">>}).
 
 check_acl(_Config) ->
     {ok, Connection} = ?POOL(?APP),
@@ -182,17 +185,10 @@ acl_super(_Config) ->
         ?assertEqual(<<"Payload">>, Payload)
     after
         1000 ->
-            ct:fail({receive_timeout, <<"Payload">>}),      
+            ct:fail({receive_timeout, <<"Payload">>}),
             ok
     end,
     emqx_client:disconnect(C).
-
-comment_config(_) ->
-    application:stop(?APP),
-    [application:unset_env(?APP, Par) || Par <- [acl_cmd, auth_cmd]],
-    application:start(?APP),
-    ?assertEqual([], emqx_access_control:lookup_mods(auth)),
-    ?assertEqual([], emqx_access_control:lookup_mods(acl)).
 
 server_config(_) ->
     I = [{host, "localhost"},
