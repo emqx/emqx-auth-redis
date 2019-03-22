@@ -16,9 +16,13 @@
 
 -behaviour(application).
 
+-emqx_plugin(?MODULE).
+
 -include("emqx_auth_redis.hrl").
 
--export([start/2, stop/1]).
+-export([ start/2
+        , stop/1
+        ]).
 
 start(_StartType, _StartArgs) ->
     {ok, Sup} = emqx_auth_redis_sup:start_link(),
