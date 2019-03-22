@@ -16,7 +16,9 @@
 
 -include_lib("emqx/include/emqx.hrl").
 
--export([check/2, description/0]).
+-export([ check/2
+        , description/0
+        ]).
 
 -define(UNDEFINED(S), (S =:= undefined)).
 
