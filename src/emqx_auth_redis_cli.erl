@@ -23,7 +23,8 @@
 -import(proplists, [get_value/2, get_value/3]).
 
 -export([ connect/1
-        , q/2]).
+        , q/2
+        ]).
 
 %%--------------------------------------------------------------------
 %% Redis Connect/Query
