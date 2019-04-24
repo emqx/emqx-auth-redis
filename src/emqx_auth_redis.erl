@@ -15,6 +15,7 @@
 -module(emqx_auth_redis).
 
 -include_lib("emqx/include/emqx.hrl").
+-include_lib("emqx/include/logger.hrl").
 
 -export([ check/2
         , description/0
@@ -40,7 +41,7 @@ check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
                     {ok, [PassHash, Salt|_]} ->
                         check_pass({PassHash, Salt, Password}, HashType);
                     {error, Reason} ->
-                        logger:error("Execute redis command '~p' failed: ~p", [AuthCmd, Reason]),
+                        ?LOG(error, "[Redis] Command: ~p failed: ~p", [AuthCmd, Reason]),
                         {error, not_found}
                 end,
     case CheckPass of
@@ -48,13 +49,13 @@ check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
                                   auth_result => success}};
         {error, not_found} -> ok;
         {error, ResultCode} ->
-            logger:error("Auth from redis failed: ~p", [ResultCode]),
+            ?LOG(error, "[Redis] Auth from redis failed: ~p", [ResultCode]),
             {stop, Credentials#{auth_result => ResultCode}}
     end;
 
 check(Credentials, Config) ->
     ResultCode = insufficient_credentials,
-    logger:error("Auth from redis failed: ~p, Configs: ~p", [ResultCode, Config]),
+    ?LOG(error, "[Redis] Auth from redis failed: ~p, Configs: ~p", [ResultCode, Config]),
     {ok, Credentials#{auth_result => ResultCode}}.
 
 
