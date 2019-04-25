@@ -15,6 +15,7 @@
 -module(emqx_acl_redis).
 
 -include_lib("emqx/include/emqx.hrl").
+-include_lib("emqx/include/logger.hrl").
 
 -export([ check_acl/5
         , reload_acl/1
@@ -32,7 +33,7 @@ check_acl(Credetials, PubSub, Topic, _AclResult, #{acl_cmd := AclCmd}) ->
                 nomatch -> {stop, deny}
             end;
         {error, Reason} ->
-            emqx_logger:error("Redis check_acl error: ~p", [Reason]),
+            ?LOG(error, "[Redis] check_acl error: ~p", [Reason]),
             ok
     end.
 
