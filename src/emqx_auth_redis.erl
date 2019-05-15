@@ -21,13 +21,6 @@
         , description/0
         ]).
 
--define(UNDEFINED(S), (S =:= undefined)).
-
-
-check(Credentials = #{username := Username, password := Password}, _Config)
-    when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
-    {ok, Credentials#{auth_result => bad_username_or_password}};
-
 check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
                                                super_cmd := SuperCmd,
                                                hash_type := HashType}) ->
@@ -46,18 +39,13 @@ check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
                 end,
     case CheckPass of
         ok -> {stop, Credentials#{is_superuser => is_superuser(SuperCmd, Credentials),
+                                  anonymous => false,
                                   auth_result => success}};
         {error, not_found} -> ok;
         {error, ResultCode} ->
             ?LOG(error, "[Redis] Auth from redis failed: ~p", [ResultCode]),
-            {stop, Credentials#{auth_result => ResultCode}}
-    end;
-
-check(Credentials, Config) ->
-    ResultCode = insufficient_credentials,
-    ?LOG(error, "[Redis] Auth from redis failed: ~p, Configs: ~p", [ResultCode, Config]),
-    {ok, Credentials#{auth_result => ResultCode}}.
-
+            {stop, Credentials#{auth_result => ResultCode, anonymous => false}}
+    end.
 
 description() -> "Authentication with Redis".
 
@@ -76,5 +64,4 @@ check_pass(Password, HashType) ->
         ok -> ok;
         {error, _Reason} -> {error, not_authorized}
     end.
-
 
