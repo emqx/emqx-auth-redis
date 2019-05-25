@@ -32,13 +32,7 @@ init([]) ->
 pool_spec(Server) ->
     case proplists:get_value(type, Server) of
         cluster ->
-            DataBase = proplists:get_value(database, Server, 0),
-            Password = proplists:get_value(password, Server, ""),
-            Size = proplists:get_value(pool_size, Server, 8),
-            application:set_env(eredis_cluster, database, DataBase),
-            application:set_env(eredis_cluster, password, Password),
-            application:set_env(eredis_cluster, pool_size, Size),
-            eredis_cluster:connect(proplists:get_value(servers, Server, [])),
+            eredis_cluster:start_pool(?APP, Server),
             [];
         _ ->
             [ecpool:pool_spec(?APP, ?APP, emqx_auth_redis_cli, Server)]

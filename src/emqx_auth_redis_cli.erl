@@ -51,7 +51,7 @@ connect(Opts) ->
 q(CmdStr, Credentials) ->
     Cmd = string:tokens(replvar(CmdStr, Credentials), " "),
     case get_value(type, application:get_env(?APP, server, [])) of
-        cluster -> eredis_cluster:q(Cmd);
+        cluster -> eredis_cluster:q(?APP, Cmd);
         _ -> ecpool:with_client(?APP, fun(C) -> eredis:q(C, Cmd) end)
     end.
 
