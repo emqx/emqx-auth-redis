@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  erlang:
+    image: erlang:21.3
+    labels: 
+      name: tests
+    volumes:
+      - ../:/emqx_auth_redis    
+    networks:
+      - emqx-bridge
+    depends_on:
+      - redis_server
+    tty: true
+
+  redis_server:
+    build: ./emqx-redis
+    image: emqx-redis:5
+    restart: always
+    networks:
+      - emqx-bridge
+
+networks:
+  emqx-bridge:
+    driver: bridge
