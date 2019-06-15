@@ -56,9 +56,9 @@ q(CmdStr, Credentials) ->
     end.
 
 replvar(Cmd, Credentials = #{cn := CN}) ->
-    replvar(repl(Cmd, "%cn", CN), maps:remove(cn, Credentials));
+    replvar(repl(Cmd, "%C", CN), maps:remove(cn, Credentials));
 replvar(Cmd, Credentials = #{dn := DN}) ->
-    replvar(repl(Cmd, "%dn", DN), maps:remove(dn, Credentials));
+    replvar(repl(Cmd, "%d", DN), maps:remove(dn, Credentials));
 replvar(Cmd, Credentials = #{client_id := ClientId}) ->
     replvar(repl(Cmd, "%c", ClientId), maps:remove(client_id, Credentials));
 replvar(Cmd, Credentials = #{username := Username}) ->
