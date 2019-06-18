@@ -23,8 +23,9 @@
 
 check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
                                                super_cmd := SuperCmd,
-                                               hash_type := HashType}) ->
-    CheckPass = case emqx_auth_redis_cli:q(AuthCmd, Credentials) of
+                                               hash_type := HashType,
+                                               timeout   := Timeout}) ->
+    CheckPass = case emqx_auth_redis_cli:q(AuthCmd, Credentials, Timeout) of
                     {ok, PassHash} when is_binary(PassHash) ->
                         check_pass({PassHash, Password}, HashType);
                     {ok, [undefined|_]} ->
@@ -38,7 +39,7 @@ check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
                         {error, not_found}
                 end,
     case CheckPass of
-        ok -> {stop, Credentials#{is_superuser => is_superuser(SuperCmd, Credentials),
+        ok -> {stop, Credentials#{is_superuser => is_superuser(SuperCmd, Credentials, Timeout),
                                   anonymous => false,
                                   auth_result => success}};
         {error, not_found} -> ok;
@@ -49,10 +50,10 @@ check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
 
 description() -> "Authentication with Redis".
 
--spec(is_superuser(undefined | list(), emqx_types:credentials()) -> true | false).
-is_superuser(undefined, _Credentials) -> false;
-is_superuser(SuperCmd, Credentials) ->
-    case emqx_auth_redis_cli:q(SuperCmd, Credentials) of
+-spec(is_superuser(undefined | list(), emqx_types:credentials(), timeout()) -> true | false).
+is_superuser(undefined, _Credentials, _Timeout) -> false;
+is_superuser(SuperCmd, Credentials, Timeout) ->
+    case emqx_auth_redis_cli:q(SuperCmd, Credentials, Timeout) of
         {ok, undefined} -> false;
         {ok, <<"1">>}   -> true;
         {ok, _Other}    -> false;
