@@ -17,9 +17,13 @@
 -include_lib("emqx/include/emqx.hrl").
 -include_lib("emqx/include/logger.hrl").
 
--export([ check/2
+-export([ register_metrics/0
+        , check/2
         , description/0
         ]).
+
+register_metrics() ->
+    [emqx_metrics:new(MetricName) || MetricName <- ['auth.redis.succeed', 'auth.redis.fail', 'auth.redis.ignore']].
 
 check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
                                                super_cmd := SuperCmd,
@@ -38,12 +42,16 @@ check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
                         {error, not_found}
                 end,
     case CheckPass of
-        ok -> {stop, Credentials#{is_superuser => is_superuser(SuperCmd, Credentials),
-                                  anonymous => false,
-                                  auth_result => success}};
-        {error, not_found} -> ok;
+        ok ->
+            emqx_metrics:inc('auth.redis.succeed'),
+            {stop, Credentials#{is_superuser => is_superuser(SuperCmd, Credentials),
+                                anonymous => false,
+                                auth_result => success}};
+        {error, not_found} ->
+            emqx_metrics:inc('auth.redis.ignore'), ok;
         {error, ResultCode} ->
             ?LOG(error, "[Redis] Auth from redis failed: ~p", [ResultCode]),
+            emqx_metrics:inc('auth.redis.fail'),
             {stop, Credentials#{auth_result => ResultCode, anonymous => false}}
     end.
 
