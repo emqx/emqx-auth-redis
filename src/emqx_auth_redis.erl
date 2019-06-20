@@ -23,7 +23,7 @@
         ]).
 
 register_metrics() ->
-    [emqx_metrics:new(MetricName) || MetricName <- ['auth.redis.succeed', 'auth.redis.fail', 'auth.redis.ignore']].
+    [emqx_metrics:new(MetricName) || MetricName <- ['auth.redis.success', 'auth.redis.failure', 'auth.redis.ignore']].
 
 check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
                                                super_cmd := SuperCmd,
@@ -43,7 +43,7 @@ check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
                 end,
     case CheckPass of
         ok ->
-            emqx_metrics:inc('auth.redis.succeed'),
+            emqx_metrics:inc('auth.redis.success'),
             {stop, Credentials#{is_superuser => is_superuser(SuperCmd, Credentials),
                                 anonymous => false,
                                 auth_result => success}};
@@ -51,7 +51,7 @@ check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
             emqx_metrics:inc('auth.redis.ignore'), ok;
         {error, ResultCode} ->
             ?LOG(error, "[Redis] Auth from redis failed: ~p", [ResultCode]),
-            emqx_metrics:inc('auth.redis.fail'),
+            emqx_metrics:inc('auth.redis.failure'),
             {stop, Credentials#{auth_result => ResultCode, anonymous => false}}
     end.
 
