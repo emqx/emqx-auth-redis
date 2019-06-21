@@ -16,7 +16,7 @@
 
 -behaviour(application).
 
--emqx_plugin(?MODULE).
+-emqx_plugin(auth).
 
 -include("emqx_auth_redis.hrl").
 
@@ -44,9 +44,11 @@ load_auth_hook(AuthCmd) ->
     Config = #{auth_cmd => AuthCmd,
                super_cmd => SuperCmd,
                hash_type => HashType},
+    emqx_auth_redis:register_metrics(),
     emqx:hook('client.authenticate', fun emqx_auth_redis:check/2, [Config]).
 
 load_acl_hook(AclCmd) ->
+    emqx_acl_redis:register_metrics(),
     emqx:hook('client.check_acl', fun emqx_acl_redis:check_acl/5, [#{acl_cmd => AclCmd}]).
 
 if_cmd_enabled(Par, Fun) ->
