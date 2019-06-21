@@ -41,15 +41,20 @@ stop(_State) ->
 load_auth_hook(AuthCmd) ->
     SuperCmd = application:get_env(?APP, super_cmd, undefined),
     {ok, HashType} = application:get_env(?APP, password_hash),
+    {ok, Timeout} = application:get_env(?APP, query_timeout),
     Config = #{auth_cmd => AuthCmd,
                super_cmd => SuperCmd,
-               hash_type => HashType},
+               hash_type => HashType,
+               timeout => Timeout},
     emqx_auth_redis:register_metrics(),
     emqx:hook('client.authenticate', fun emqx_auth_redis:check/2, [Config]).
 
 load_acl_hook(AclCmd) ->
+    {ok, Timeout} = application:get_env(?APP, query_timeout),
+    Config = #{acl_cmd => AclCmd,
+               timeout => Timeout},
     emqx_acl_redis:register_metrics(),
-    emqx:hook('client.check_acl', fun emqx_acl_redis:check_acl/5, [#{acl_cmd => AclCmd}]).
+    emqx:hook('client.check_acl', fun emqx_acl_redis:check_acl/5, [Config]).
 
 if_cmd_enabled(Par, Fun) ->
     case application:get_env(?APP, Par) of
