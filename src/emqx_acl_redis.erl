@@ -17,15 +17,26 @@
 -include_lib("emqx/include/emqx.hrl").
 -include_lib("emqx/include/logger.hrl").
 
--export([ check_acl/5
+-export([ register_metrics/0
+        , check_acl/5
         , reload_acl/1
         , description/0
         ]).
 
-check_acl(#{username := <<$$, _/binary>>}, _PubSub, _Topic, _AclResult, _Config) ->
+register_metrics() ->
+    [emqx_metrics:new(MetricName) || MetricName <- ['acl.redis.allow', 'acl.redis.deny', 'acl.redis.ignore']].
+
+check_acl(Credentials, PubSub, Topic, AclResult, Config) ->
+    case do_check_acl(Credentials, PubSub, Topic, AclResult, Config) of
+        ok -> emqx_metrics:inc('acl.redis.ignore'), ok;
+        {stop, allow} -> emqx_metrics:inc('acl.redis.allow'), {stop, allow};
+        {stop, deny} -> emqx_metrics:inc('acl.redis.deny'), {stop, deny}
+    end.
+
+do_check_acl(#{username := <<$$, _/binary>>}, _PubSub, _Topic, _AclResult, _Config) ->
     ok;
-check_acl(Credetials, PubSub, Topic, _AclResult, #{acl_cmd := AclCmd,
-                                                   timeout := Timeout}) ->
+do_check_acl(Credetials, PubSub, Topic, _AclResult, #{acl_cmd := AclCmd,
+                                                      timeout := Timeout}) ->
     case emqx_auth_redis_cli:q(AclCmd, Credetials, Timeout) of
         {ok, []} -> ok;
         {ok, Rules} ->
@@ -34,7 +45,7 @@ check_acl(Credetials, PubSub, Topic, _AclResult, #{acl_cmd := AclCmd,
                 nomatch -> {stop, deny}
             end;
         {error, Reason} ->
-            ?LOG(error, "[Redis] check_acl error: ~p", [Reason]),
+            ?LOG(error, "[Redis] do_check_acl error: ~p", [Reason]),
             ok
     end.
 
