@@ -17,14 +17,19 @@
 -include_lib("emqx/include/emqx.hrl").
 -include_lib("emqx/include/logger.hrl").
 
--export([ check/2
+-export([ register_metrics/0
+        , check/2
         , description/0
         ]).
 
+register_metrics() ->
+    [emqx_metrics:new(MetricName) || MetricName <- ['auth.redis.success', 'auth.redis.failure', 'auth.redis.ignore']].
+
 check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
                                                super_cmd := SuperCmd,
-                                               hash_type := HashType}) ->
-    CheckPass = case emqx_auth_redis_cli:q(AuthCmd, Credentials) of
+                                               hash_type := HashType,
+                                               timeout   := Timeout}) ->
+    CheckPass = case emqx_auth_redis_cli:q(AuthCmd, Credentials, Timeout) of
                     {ok, PassHash} when is_binary(PassHash) ->
                         check_pass({PassHash, Password}, HashType);
                     {ok, [undefined|_]} ->
@@ -38,21 +43,25 @@ check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
                         {error, not_found}
                 end,
     case CheckPass of
-        ok -> {stop, Credentials#{is_superuser => is_superuser(SuperCmd, Credentials),
-                                  anonymous => false,
-                                  auth_result => success}};
-        {error, not_found} -> ok;
+        ok ->
+            emqx_metrics:inc('auth.redis.success'),
+            {stop, Credentials#{is_superuser => is_superuser(SuperCmd, Credentials, Timeout),
+                                anonymous => false,
+                                auth_result => success}};
+        {error, not_found} ->
+            emqx_metrics:inc('auth.redis.ignore'), ok;
         {error, ResultCode} ->
             ?LOG(error, "[Redis] Auth from redis failed: ~p", [ResultCode]),
+            emqx_metrics:inc('auth.redis.failure'),
             {stop, Credentials#{auth_result => ResultCode, anonymous => false}}
     end.
 
 description() -> "Authentication with Redis".
 
--spec(is_superuser(undefined | list(), emqx_types:credentials()) -> true | false).
-is_superuser(undefined, _Credentials) -> false;
-is_superuser(SuperCmd, Credentials) ->
-    case emqx_auth_redis_cli:q(SuperCmd, Credentials) of
+-spec(is_superuser(undefined | list(), emqx_types:credentials(), timeout()) -> true | false).
+is_superuser(undefined, _Credentials, _Timeout) -> false;
+is_superuser(SuperCmd, Credentials, Timeout) ->
+    case emqx_auth_redis_cli:q(SuperCmd, Credentials, Timeout) of
         {ok, undefined} -> false;
         {ok, <<"1">>}   -> true;
         {ok, _Other}    -> false;

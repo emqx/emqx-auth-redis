@@ -62,6 +62,22 @@
    {sentinel, Sentinel}] ++ Server
 end}.
 
+{mapping, "auth.redis.query_timeout", "emqx_auth_redis.query_timeout", [
+  {default, ""},
+  {datatype, string}
+]}.
+
+{translation, "emqx_auth_redis.query_timeout", fun(Conf) ->
+  case cuttlefish:conf_get("auth.redis.query_timeout", Conf) of
+      "" -> infinity;
+      Duration ->
+          case cuttlefish_duration:parse(Duration, ms) of
+              {error, Reason} -> error(Reason);
+              Ms when is_integer(Ms) -> Ms
+          end
+  end
+end}.
+
 {mapping, "auth.redis.auth_cmd", "emqx_auth_redis.auth_cmd", [
   {datatype, string}
 ]}.

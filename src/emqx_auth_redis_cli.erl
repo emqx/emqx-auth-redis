@@ -23,7 +23,7 @@
 -import(proplists, [get_value/2, get_value/3]).
 
 -export([ connect/1
-        , q/2
+        , q/3
         ]).
 
 %%--------------------------------------------------------------------
@@ -46,19 +46,19 @@ connect(Opts) ->
                       no_reconnect).
 
 %% Redis Query.
--spec(q(string(), emqx_types:credentials())
+-spec(q(string(), emqx_types:credentials(), timeout())
       -> {ok, undefined | binary() | list()} | {error, atom() | binary()}).
-q(CmdStr, Credentials) ->
+q(CmdStr, Credentials, Timeout) ->
     Cmd = string:tokens(replvar(CmdStr, Credentials), " "),
     case get_value(type, application:get_env(?APP, server, [])) of
         cluster -> eredis_cluster:q(?APP, Cmd);
-        _ -> ecpool:with_client(?APP, fun(C) -> eredis:q(C, Cmd) end)
+        _ -> ecpool:with_client(?APP, fun(C) -> eredis:q(C, Cmd, Timeout) end)
     end.
 
 replvar(Cmd, Credentials = #{cn := CN}) ->
-    replvar(repl(Cmd, "%cn", CN), maps:remove(cn, Credentials));
+    replvar(repl(Cmd, "%C", CN), maps:remove(cn, Credentials));
 replvar(Cmd, Credentials = #{dn := DN}) ->
-    replvar(repl(Cmd, "%dn", DN), maps:remove(dn, Credentials));
+    replvar(repl(Cmd, "%d", DN), maps:remove(dn, Credentials));
 replvar(Cmd, Credentials = #{client_id := ClientId}) ->
     replvar(repl(Cmd, "%c", ClientId), maps:remove(client_id, Credentials));
 replvar(Cmd, Credentials = #{username := Username}) ->
