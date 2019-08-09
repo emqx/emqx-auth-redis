@@ -128,7 +128,7 @@ check_acl(_Config) ->
     allow = emqx_access_control:check_acl(User2, subscribe, <<"topic2">>),
     allow = emqx_access_control:check_acl(User3, publish, <<"topic3">>),
     allow = emqx_access_control:check_acl(User3, subscribe, <<"topic3">>),
-    deny = emqx_access_control:check_acl(User4, publish, <<"a/b/c">>).
+    allow = emqx_access_control:check_acl(User4, publish, <<"a/b/c">>).
 
 acl_super(_Config) ->
     reload([{password_hash, plain}]),
