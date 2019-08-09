@@ -32,7 +32,7 @@ start(_StartType, _StartArgs) ->
     {ok, Sup}.
 
 stop(_State) ->
-    emqx:unhook('client.authenticate', fun emqx_auth_redis:check/3),
+    emqx:unhook('client.authenticate', fun emqx_auth_redis:check/2),
     emqx:unhook('client.check_acl', fun emqx_acl_redis:check_acl/5),
     %% Ensure stop cluster pool if the server type is cluster
     eredis_cluster:stop_pool(?APP),
@@ -47,7 +47,7 @@ load_auth_hook(AuthCmd) ->
                hash_type => HashType,
                timeout => Timeout},
     emqx_auth_redis:register_metrics(),
-    emqx:hook('client.authenticate', fun emqx_auth_redis:check/3, [Config]).
+    emqx:hook('client.authenticate', fun emqx_auth_redis:check/2, [Config]).
 
 load_acl_hook(AclCmd) ->
     {ok, Timeout} = application:get_env(?APP, query_timeout),

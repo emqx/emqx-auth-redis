@@ -18,18 +18,17 @@
 -include_lib("emqx/include/logger.hrl").
 
 -export([ register_metrics/0
-        , check/3
+        , check/2
         , description/0
         ]).
 
 register_metrics() ->
     [emqx_metrics:new(MetricName) || MetricName <- ['auth.redis.success', 'auth.redis.failure', 'auth.redis.ignore']].
 
-check(Credentials = #{password := Password}, AuthResult,
-      #{auth_cmd  := AuthCmd,
-        super_cmd := SuperCmd,
-        hash_type := HashType,
-        timeout   := Timeout}) ->
+check(Credentials = #{password := Password}, #{auth_cmd  := AuthCmd,
+                                               super_cmd := SuperCmd,
+                                               hash_type := HashType,
+                                               timeout   := Timeout}) ->
     CheckPass = case emqx_auth_redis_cli:q(AuthCmd, Credentials, Timeout) of
                     {ok, PassHash} when is_binary(PassHash) ->
                         check_pass({PassHash, Password}, HashType);
@@ -46,15 +45,15 @@ check(Credentials = #{password := Password}, AuthResult,
     case CheckPass of
         ok ->
             emqx_metrics:inc('auth.redis.success'),
-            {stop, AuthResult#{is_superuser => is_superuser(SuperCmd, Credentials, Timeout),
-                               anonymous => false,
-                               auth_result => success}};
+            {stop, Credentials#{is_superuser => is_superuser(SuperCmd, Credentials, Timeout),
+                                anonymous => false,
+                                auth_result => success}};
         {error, not_found} ->
             emqx_metrics:inc('auth.redis.ignore'), ok;
         {error, ResultCode} ->
             ?LOG(error, "[Redis] Auth from redis failed: ~p", [ResultCode]),
             emqx_metrics:inc('auth.redis.failure'),
-            {stop, AuthResult#{auth_result => ResultCode, anonymous => false}}
+            {stop, Credentials#{auth_result => ResultCode, anonymous => false}}
     end.
 
 description() -> "Authentication with Redis".
