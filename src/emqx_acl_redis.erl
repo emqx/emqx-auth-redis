@@ -1,4 +1,5 @@
-%% Copyright (c) 2013-2019 EMQ Technologies Co., Ltd. All Rights Reserved.
+%%--------------------------------------------------------------------
+%% Copyright (c) 2019 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -11,6 +12,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
+%%--------------------------------------------------------------------
 
 -module(emqx_acl_redis).
 
@@ -23,11 +25,17 @@
         , description/0
         ]).
 
-register_metrics() ->
-    [emqx_metrics:new(MetricName) || MetricName <- ['acl.redis.allow', 'acl.redis.deny', 'acl.redis.ignore']].
+-define(ACL_METRICS,
+        ['acl.redis.allow',
+         'acl.redis.deny',
+         'acl.redis.ignore'
+        ]).
 
-check_acl(Credentials, PubSub, Topic, AclResult, Config) ->
-    case do_check_acl(Credentials, PubSub, Topic, AclResult, Config) of
+register_metrics() ->
+    lists:foreach(fun emqx_metrics:new/1, ?ACL_METRICS).
+
+check_acl(Client, PubSub, Topic, AclResult, Config) ->
+    case do_check_acl(Client, PubSub, Topic, AclResult, Config) of
         ok -> emqx_metrics:inc('acl.redis.ignore'), ok;
         {stop, allow} -> emqx_metrics:inc('acl.redis.allow'), {stop, allow};
         {stop, deny} -> emqx_metrics:inc('acl.redis.deny'), {stop, deny}
@@ -35,12 +43,12 @@ check_acl(Credentials, PubSub, Topic, AclResult, Config) ->
 
 do_check_acl(#{username := <<$$, _/binary>>}, _PubSub, _Topic, _AclResult, _Config) ->
     ok;
-do_check_acl(Credetials, PubSub, Topic, _AclResult, #{acl_cmd := AclCmd,
-                                                      timeout := Timeout}) ->
-    case emqx_auth_redis_cli:q(AclCmd, Credetials, Timeout) of
+do_check_acl(Client, PubSub, Topic, _AclResult, #{acl_cmd := AclCmd,
+                                                  timeout := Timeout}) ->
+    case emqx_auth_redis_cli:q(AclCmd, Client, Timeout) of
         {ok, []} -> ok;
         {ok, Rules} ->
-            case match(Credetials, PubSub, Topic, Rules) of
+            case match(Client, PubSub, Topic, Rules) of
                 allow   -> {stop, allow};
                 nomatch -> {stop, deny}
             end;
@@ -49,12 +57,13 @@ do_check_acl(Credetials, PubSub, Topic, _AclResult, #{acl_cmd := AclCmd,
             ok
     end.
 
-match(_Credetials, _PubSub, _Topic, []) ->
+match(_Client, _PubSub, _Topic, []) ->
     nomatch;
-match(Credetials, PubSub, Topic, [Filter, Access | Rules]) ->
-    case {match_topic(Topic, feed_var(Credetials, Filter)), match_access(PubSub, b2i(Access))} of
+match(Client, PubSub, Topic, [Filter, Access | Rules]) ->
+    case {match_topic(Topic, feed_var(Client, Filter)),
+          match_access(PubSub, b2i(Access))} of
         {true, true} -> allow;
-        {_, _} -> match(Credetials, PubSub, Topic, Rules)
+        {_, _} -> match(Client, PubSub, Topic, Rules)
     end.
 
 match_topic(Topic, Filter) ->
