@@ -1,4 +1,5 @@
-%% Copyright (c) 2013-2019 EMQ Technologies Co., Ltd. All Rights Reserved.
+%%--------------------------------------------------------------------
+%% Copyright (c) 2019 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -11,6 +12,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
+%%--------------------------------------------------------------------
 
 -module(emqx_auth_redis).
 
@@ -22,15 +24,21 @@
         , description/0
         ]).
 
-register_metrics() ->
-    [emqx_metrics:new(MetricName) || MetricName <- ['auth.redis.success', 'auth.redis.failure', 'auth.redis.ignore']].
+-define(AUTH_METRICS,
+        ['auth.redis.success',
+         'auth.redis.failure',
+         'auth.redis.ignore'
+        ]).
 
-check(Credentials = #{password := Password}, AuthResult,
+register_metrics() ->
+    lists:foreach(fun emqx_metrics:new/1, ?AUTH_METRICS).
+
+check(Client= #{password := Password}, AuthResult,
       #{auth_cmd  := AuthCmd,
         super_cmd := SuperCmd,
         hash_type := HashType,
         timeout   := Timeout}) ->
-    CheckPass = case emqx_auth_redis_cli:q(AuthCmd, Credentials, Timeout) of
+    CheckPass = case emqx_auth_redis_cli:q(AuthCmd, Client, Timeout) of
                     {ok, PassHash} when is_binary(PassHash) ->
                         check_pass({PassHash, Password}, HashType);
                     {ok, [undefined|_]} ->
@@ -46,7 +54,7 @@ check(Credentials = #{password := Password}, AuthResult,
     case CheckPass of
         ok ->
             emqx_metrics:inc('auth.redis.success'),
-            {stop, AuthResult#{is_superuser => is_superuser(SuperCmd, Credentials, Timeout),
+            {stop, AuthResult#{is_superuser => is_superuser(SuperCmd, Client, Timeout),
                                anonymous => false,
                                auth_result => success}};
         {error, not_found} ->
@@ -59,10 +67,10 @@ check(Credentials = #{password := Password}, AuthResult,
 
 description() -> "Authentication with Redis".
 
--spec(is_superuser(undefined | list(), emqx_types:credentials(), timeout()) -> true | false).
-is_superuser(undefined, _Credentials, _Timeout) -> false;
-is_superuser(SuperCmd, Credentials, Timeout) ->
-    case emqx_auth_redis_cli:q(SuperCmd, Credentials, Timeout) of
+-spec(is_superuser(undefined | list(), emqx_types:client(), timeout()) -> boolean()).
+is_superuser(undefined, _Client, _Timeout) -> false;
+is_superuser(SuperCmd, Client, Timeout) ->
+    case emqx_auth_redis_cli:q(SuperCmd, Client, Timeout) of
         {ok, undefined} -> false;
         {ok, <<"1">>}   -> true;
         {ok, _Other}    -> false;
