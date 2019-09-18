@@ -48,14 +48,14 @@ load_auth_hook(AuthCmd) ->
                super_cmd => SuperCmd,
                hash_type => HashType,
                timeout => Timeout},
-    emqx_auth_redis:register_metrics(),
+    ok = emqx_auth_redis:register_metrics(),
     emqx:hook('client.authenticate', fun emqx_auth_redis:check/3, [Config]).
 
 load_acl_hook(AclCmd) ->
     {ok, Timeout} = application:get_env(?APP, query_timeout),
     Config = #{acl_cmd => AclCmd,
                timeout => Timeout},
-    emqx_acl_redis:register_metrics(),
+    ok = emqx_acl_redis:register_metrics(),
     emqx:hook('client.check_acl', fun emqx_acl_redis:check_acl/5, [Config]).
 
 if_cmd_enabled(Par, Fun) ->
