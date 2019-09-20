@@ -30,15 +30,16 @@
          'auth.redis.ignore'
         ]).
 
+-spec(register_metrics() -> ok).
 register_metrics() ->
     lists:foreach(fun emqx_metrics:new/1, ?AUTH_METRICS).
 
-check(Client= #{password := Password}, AuthResult,
+check(ClientInfo = #{password := Password}, AuthResult,
       #{auth_cmd  := AuthCmd,
         super_cmd := SuperCmd,
         hash_type := HashType,
         timeout   := Timeout}) ->
-    CheckPass = case emqx_auth_redis_cli:q(AuthCmd, Client, Timeout) of
+    CheckPass = case emqx_auth_redis_cli:q(AuthCmd, ClientInfo, Timeout) of
                     {ok, PassHash} when is_binary(PassHash) ->
                         check_pass({PassHash, Password}, HashType);
                     {ok, [undefined|_]} ->
@@ -53,24 +54,25 @@ check(Client= #{password := Password}, AuthResult,
                 end,
     case CheckPass of
         ok ->
-            emqx_metrics:inc('auth.redis.success'),
-            {stop, AuthResult#{is_superuser => is_superuser(SuperCmd, Client, Timeout),
-                               anonymous => false,
-                               auth_result => success}};
+            ok = emqx_metrics:inc('auth.redis.success'),
+            IsSuperuser = is_superuser(SuperCmd, ClientInfo, Timeout),
+            {stop, AuthResult#{is_superuser => IsSuperuser,
+                               anonymous    => false,
+                               auth_result  => success}};
         {error, not_found} ->
-            emqx_metrics:inc('auth.redis.ignore'), ok;
+            ok = emqx_metrics:inc('auth.redis.ignore');
         {error, ResultCode} ->
+            ok = emqx_metrics:inc('auth.redis.failure'),
             ?LOG(error, "[Redis] Auth from redis failed: ~p", [ResultCode]),
-            emqx_metrics:inc('auth.redis.failure'),
             {stop, AuthResult#{auth_result => ResultCode, anonymous => false}}
     end.
 
 description() -> "Authentication with Redis".
 
--spec(is_superuser(undefined | list(), emqx_types:client(), timeout()) -> boolean()).
-is_superuser(undefined, _Client, _Timeout) -> false;
-is_superuser(SuperCmd, Client, Timeout) ->
-    case emqx_auth_redis_cli:q(SuperCmd, Client, Timeout) of
+-spec(is_superuser(undefined|list(), emqx_types:client(), timeout()) -> boolean()).
+is_superuser(undefined, _ClientInfo, _Timeout) -> false;
+is_superuser(SuperCmd, ClientInfo, Timeout) ->
+    case emqx_auth_redis_cli:q(SuperCmd, ClientInfo, Timeout) of
         {ok, undefined} -> false;
         {ok, <<"1">>}   -> true;
         {ok, _Other}    -> false;
