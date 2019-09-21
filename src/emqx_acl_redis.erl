@@ -31,11 +31,12 @@
          'acl.redis.ignore'
         ]).
 
+-spec(register_metrics() -> ok).
 register_metrics() ->
     lists:foreach(fun emqx_metrics:new/1, ?ACL_METRICS).
 
-check_acl(Client, PubSub, Topic, AclResult, Config) ->
-    case do_check_acl(Client, PubSub, Topic, AclResult, Config) of
+check_acl(ClientInfo, PubSub, Topic, AclResult, Config) ->
+    case do_check_acl(ClientInfo, PubSub, Topic, AclResult, Config) of
         ok -> emqx_metrics:inc('acl.redis.ignore'), ok;
         {stop, allow} -> emqx_metrics:inc('acl.redis.allow'), {stop, allow};
         {stop, deny} -> emqx_metrics:inc('acl.redis.deny'), {stop, deny}
@@ -43,12 +44,12 @@ check_acl(Client, PubSub, Topic, AclResult, Config) ->
 
 do_check_acl(#{username := <<$$, _/binary>>}, _PubSub, _Topic, _AclResult, _Config) ->
     ok;
-do_check_acl(Client, PubSub, Topic, _AclResult, #{acl_cmd := AclCmd,
-                                                  timeout := Timeout}) ->
-    case emqx_auth_redis_cli:q(AclCmd, Client, Timeout) of
+do_check_acl(ClientInfo, PubSub, Topic, _AclResult,
+             #{acl_cmd := AclCmd, timeout := Timeout}) ->
+    case emqx_auth_redis_cli:q(AclCmd, ClientInfo, Timeout) of
         {ok, []} -> ok;
         {ok, Rules} ->
-            case match(Client, PubSub, Topic, Rules) of
+            case match(ClientInfo, PubSub, Topic, Rules) of
                 allow   -> {stop, allow};
                 nomatch -> {stop, deny}
             end;
@@ -57,13 +58,13 @@ do_check_acl(Client, PubSub, Topic, _AclResult, #{acl_cmd := AclCmd,
             ok
     end.
 
-match(_Client, _PubSub, _Topic, []) ->
+match(_ClientInfo, _PubSub, _Topic, []) ->
     nomatch;
-match(Client, PubSub, Topic, [Filter, Access | Rules]) ->
-    case {match_topic(Topic, feed_var(Client, Filter)),
+match(ClientInfo, PubSub, Topic, [Filter, Access | Rules]) ->
+    case {match_topic(Topic, feed_var(ClientInfo, Filter)),
           match_access(PubSub, b2i(Access))} of
         {true, true} -> allow;
-        {_, _} -> match(Client, PubSub, Topic, Rules)
+        {_, _} -> match(ClientInfo, PubSub, Topic, Rules)
     end.
 
 match_topic(Topic, Filter) ->
