@@ -75,7 +75,7 @@ match_access(subscribe, Access) ->
 match_access(publish, Access) ->
     (2 band Access) > 0.
 
-feed_var(#{client_id := ClientId, username := Username}, Str) ->
+feed_var(#{clientid := ClientId, username := Username}, Str) ->
     lists:foldl(fun({Var, Val}, Acc) ->
                 feed_var(Acc, Var, Val)
         end, Str, [{"%u", Username}, {"%c", ClientId}]).
