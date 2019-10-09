@@ -55,18 +55,36 @@ q(CmdStr, Credentials, Timeout) ->
         _ -> ecpool:with_client(?APP, fun(C) -> eredis:q(C, Cmd, Timeout) end)
     end.
 
-replvar(Cmd, Credentials = #{cn := CN}) ->
-    replvar(repl(Cmd, "%C", CN), maps:remove(cn, Credentials));
-replvar(Cmd, Credentials = #{dn := DN}) ->
-    replvar(repl(Cmd, "%d", DN), maps:remove(dn, Credentials));
-replvar(Cmd, Credentials = #{client_id := ClientId}) ->
-    replvar(repl(Cmd, "%c", ClientId), maps:remove(client_id, Credentials));
-replvar(Cmd, Credentials = #{username := Username}) ->
-    replvar(repl(Cmd, "%u", Username), maps:remove(username, Credentials));
-replvar(Cmd, _) ->
-    Cmd.
+replvar(Cmd, Credentials) ->
+    case re:run(Cmd, "%[ucCad]", [global, {capture, all, list}]) of
+        nomatch -> Cmd;
+        {match, Variables} ->
+            Params = [Var || [Var] <- Variables],
+            replvar(Params, Cmd, Credentials)
+    end.
+
+replvar([], Cmd, _Credentials) ->
+    Cmd;
+replvar(["%u" | Params], Cmd, Credentials) ->
+    replvar(Params, repl(Cmd, "%u", safe_get(username, Credentials)), Credentials);
+replvar(["%c" | Params], Cmd, Credentials) ->
+    replvar(Params, repl(Cmd, "%c", safe_get(client_id, Credentials)), Credentials);
+replvar(["%C" | Params], Cmd, Credentials) ->
+    replvar(Params, repl(Cmd, "%C", safe_get(cn, Credentials)), Credentials);
+replvar(["%d" | Params], Cmd, Credentials) ->
+    replvar(Params, repl(Cmd, "%d", safe_get(dn, Credentials)), Credentials);
+replvar([_ | Params], Cmd, Credentials) ->
+    replvar(Params, Cmd, Credentials).
 
 repl(S, _Var, undefined) ->
     S;
 repl(S, Var, Val) ->
-    re:replace(S, Var, Val, [{return, list}]).
+    re:replace(S, Var, Val, [global, {return, list}]).
+
+safe_get(K, Credentials) ->
+    bin(maps:get(K, Credentials, undefined)).
+
+bin(A) when is_atom(A) -> atom_to_binary(A, utf8);
+bin(B) when is_binary(B) -> B;
+bin(X) -> X.
+
