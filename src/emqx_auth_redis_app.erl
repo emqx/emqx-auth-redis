@@ -28,12 +28,14 @@ start(_StartType, _StartArgs) ->
     {ok, Sup} = emqx_auth_redis_sup:start_link(),
     if_cmd_enabled(auth_cmd, fun load_auth_hook/1),
     if_cmd_enabled(acl_cmd,  fun load_acl_hook/1),
+    emqx_auth_redis:load([]),
     emqx_auth_redis_cfg:register(),
     {ok, Sup}.
 
 stop(_State) ->
     emqx:unhook('client.authenticate', fun emqx_auth_redis:check/2),
     emqx:unhook('client.check_acl', fun emqx_acl_redis:check_acl/5),
+    emqx_auth_redis:unload(),
     %% Ensure stop cluster pool if the server type is cluster
     eredis_cluster:stop_pool(?APP),
     emqx_auth_redis_cfg:unregister().
