@@ -79,15 +79,15 @@ set_special_configs(_App) ->
 check_auth(_Config) ->
     {ok, Connection} = ?POOL(?APP),
     [eredis:q(Connection, ["HMSET", Key|FiledValue]) || {Key, FiledValue} <- ?INIT_AUTH],
-    Plain = #{clientid => <<"client1">>, username => <<"plain">>},
-    Md5 = #{clientid => <<"md5">>, username => <<"md5">>},
-    Sha = #{clientid => <<"sha">>, username => <<"sha">>},
-    Sha256 = #{clientid => <<"sha256">>, username => <<"sha256">>},
-    Pbkdf2 = #{clientid => <<"pbkdf2_password">>, username => <<"pbkdf2_password">>},
-    BcryptFoo = #{clientid => <<"bcrypt_foo">>, username => <<"bcrypt_foo">>},
-    User1 = #{clientid => <<"bcrypt_foo">>, username => <<"user">>},
-    User3 = #{clientid => <<"client3">>},
-    Bcrypt = #{clientid => <<"bcrypt">>, username => <<"bcrypt">>},
+    Plain = #{clientid => <<"client1">>, username => <<"plain">>, zone => external},
+    Md5 = #{clientid => <<"md5">>, username => <<"md5">>, zone => external},
+    Sha = #{clientid => <<"sha">>, username => <<"sha">>, zone => external},
+    Sha256 = #{clientid => <<"sha256">>, username => <<"sha256">>, zone => external},
+    Pbkdf2 = #{clientid => <<"pbkdf2_password">>, username => <<"pbkdf2_password">>, zone => external},
+    BcryptFoo = #{clientid => <<"bcrypt_foo">>, username => <<"bcrypt_foo">>, zone => external},
+    User1 = #{clientid => <<"bcrypt_foo">>, username => <<"user">>, zone => external},
+    User3 = #{clientid => <<"client3">>, zone => external},
+    Bcrypt = #{clientid => <<"bcrypt">>, username => <<"bcrypt">>, zone => external},
     {error, _} = emqx_access_control:authenticate(User3#{password => <<>>}),
     reload([{password_hash, plain}]),
     {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Plain#{password => <<"plain">>}),
@@ -112,7 +112,7 @@ check_auth_hget(_Config) ->
     eredis:q(Connection, ["HSET", "mqtt_user:hset", "password", "hset"]),
     eredis:q(Connection, ["HSET", "mqtt_user:hset", "is_superuser", "1"]),
     reload([{password_hash, plain}, {auth_cmd, "HGET mqtt_user:%u password"}]),
-    Hset = #{clientid => <<"hset">>, username => <<"hset">>},
+    Hset = #{clientid => <<"hset">>, username => <<"hset">>, zone => external},
     {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Hset#{password => <<"hset">>}).
 
 check_acl(_Config) ->
