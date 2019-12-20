@@ -216,11 +216,11 @@ check_user(ClientId,Username,Password,HashType) ->
 
 %%emq钩子的使用
 load(Env) ->
-  emqx:hook('client.connected', fun ?MODULE:on_client_connected/3, [Env]),
+  emqx:hook('client.connected', fun ?MODULE:on_client_connected/4, [Env]),
   emqx:hook('client.disconnected', fun ?MODULE:on_client_disconnected/3, [Env]).
 
 unload() ->
-  emqx:unhook('client.connected', fun ?MODULE:on_client_connected/3),
+  emqx:unhook('client.connected', fun ?MODULE:on_client_connected/4),
   emqx:unhook('client.disconnected', fun ?MODULE:on_client_disconnected/3).
 
 on_client_disconnected(#{client_id := ClientId}, Reason, _Env) ->
