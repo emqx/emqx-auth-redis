@@ -16,18 +16,14 @@
 
 -module(emqx_auth_redis).
 
+-include("emqx_auth_redis.hrl").
+
 -include_lib("emqx/include/emqx.hrl").
 -include_lib("emqx/include/logger.hrl").
 
 -export([ register_metrics/0
         , check/3
         , description/0
-        ]).
-
--define(AUTH_METRICS,
-        ['auth.redis.success',
-         'auth.redis.failure',
-         'auth.redis.ignore'
         ]).
 
 -spec(register_metrics() -> ok).
@@ -54,15 +50,15 @@ check(ClientInfo = #{password := Password}, AuthResult,
                 end,
     case CheckPass of
         ok ->
-            ok = emqx_metrics:inc('auth.redis.success'),
+            ok = emqx_metrics:inc(?AUTH_METRICS(success)),
             IsSuperuser = is_superuser(SuperCmd, ClientInfo, Timeout),
             {stop, AuthResult#{is_superuser => IsSuperuser,
                                anonymous    => false,
                                auth_result  => success}};
         {error, not_found} ->
-            ok = emqx_metrics:inc('auth.redis.ignore');
+            ok = emqx_metrics:inc(?AUTH_METRICS(ignore));
         {error, ResultCode} ->
-            ok = emqx_metrics:inc('auth.redis.failure'),
+            ok = emqx_metrics:inc(?AUTH_METRICS(failure)),
             ?LOG(error, "[Redis] Auth from redis failed: ~p", [ResultCode]),
             {stop, AuthResult#{auth_result => ResultCode, anonymous => false}}
     end.
