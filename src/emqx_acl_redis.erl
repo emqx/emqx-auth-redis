@@ -16,6 +16,8 @@
 
 -module(emqx_acl_redis).
 
+-include("emqx_auth_redis.hrl").
+
 -include_lib("emqx/include/emqx.hrl").
 -include_lib("emqx/include/logger.hrl").
 
@@ -25,21 +27,15 @@
         , description/0
         ]).
 
--define(ACL_METRICS,
-        ['acl.redis.allow',
-         'acl.redis.deny',
-         'acl.redis.ignore'
-        ]).
-
 -spec(register_metrics() -> ok).
 register_metrics() ->
     lists:foreach(fun emqx_metrics:new/1, ?ACL_METRICS).
 
 check_acl(ClientInfo, PubSub, Topic, AclResult, Config) ->
     case do_check_acl(ClientInfo, PubSub, Topic, AclResult, Config) of
-        ok -> emqx_metrics:inc('acl.redis.ignore'), ok;
-        {stop, allow} -> emqx_metrics:inc('acl.redis.allow'), {stop, allow};
-        {stop, deny} -> emqx_metrics:inc('acl.redis.deny'), {stop, deny}
+        ok -> emqx_metrics:inc(?ACL_METRICS(ignore)), ok;
+        {stop, allow} -> emqx_metrics:inc(?ACL_METRICS(allow)), {stop, allow};
+        {stop, deny} -> emqx_metrics:inc(?ACL_METRICS(deny)), {stop, deny}
     end.
 
 do_check_acl(#{username := <<$$, _/binary>>}, _PubSub, _Topic, _AclResult, _Config) ->
