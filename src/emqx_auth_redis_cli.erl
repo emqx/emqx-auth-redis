@@ -37,8 +37,7 @@ connect(Opts) ->
     Host = case Sentinel =:= "" of
         true -> get_value(host, Opts);
         false ->
-            eredis_sentinel:start_link([{get_value(host, Opts),
-                                         get_value(port, Opts)}]),
+            eredis_sentinel:start_link(get_value(servers, Opts)),
             "sentinel:" ++ Sentinel
     end,
     eredis:start_link(Host,
@@ -46,6 +45,7 @@ connect(Opts) ->
                       get_value(database, Opts),
                       get_value(password, Opts),
                       no_reconnect).
+
 
 %% Redis Query.
 -spec(q(string(), emqx_types:credentials(), timeout())
