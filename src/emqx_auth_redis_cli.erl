@@ -49,14 +49,14 @@ connect(Opts) ->
                     no_reconnect
                 ) of
             {ok, Pid} -> {ok, Pid};
-            {error, Reason = {connection_error,_}} -> 
-                ?LOG(error, "[Redis] The connection was rejected by the server."),
+            {error, Reason = {connection_error, _}} ->
+                ?LOG(error, "[Redis] Can't connect to Redis serve: Connection refused."),
                 {error, Reason};
             {error, Reason = {authentication_error, _}} ->
-                ?LOG(error, "[Redis] The connection was authentication failed by the server."),
+                ?LOG(error, "[Redis] Can't connect to Redis serve: Authentication failed."),
                 {error, Reason};
             {error, Reason} ->
-                ?LOG(error, "[Redis] Connection failed: ~p", [Reason]),
+                ?LOG(error, "[Redis] Can't connect to Redis serve:: ~p", [Reason]),
                 {error, Reason}
     end.
 
