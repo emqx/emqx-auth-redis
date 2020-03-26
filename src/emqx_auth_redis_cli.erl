@@ -50,13 +50,13 @@ connect(Opts) ->
                 ) of
             {ok, Pid} -> {ok, Pid};
             {error, Reason = {connection_error, _}} ->
-                ?LOG(error, "[Redis] Can't connect to Redis serve: Connection refused."),
+                ?LOG(error, "[Redis] Can't connect to Redis server: Connection refused."),
                 {error, Reason};
             {error, Reason = {authentication_error, _}} ->
-                ?LOG(error, "[Redis] Can't connect to Redis serve: Authentication failed."),
+                ?LOG(error, "[Redis] Can't connect to Redis server: Authentication failed."),
                 {error, Reason};
             {error, Reason} ->
-                ?LOG(error, "[Redis] Can't connect to Redis serve:: ~p", [Reason]),
+                ?LOG(error, "[Redis] Can't connect to Redis server: ~p", [Reason]),
                 {error, Reason}
     end.
 
