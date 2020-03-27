@@ -21,6 +21,7 @@
 -include("emqx_auth_redis.hrl").
 
 -include_lib("emqx/include/emqx.hrl").
+-include_lib("emqx/include/logger.hrl").
 
 -import(proplists, [get_value/2, get_value/3]).
 
@@ -40,12 +41,24 @@ connect(Opts) ->
             eredis_sentinel:start_link(get_value(servers, Opts)),
             "sentinel:" ++ Sentinel
     end,
-    eredis:start_link(Host,
-                      get_value(port, Opts, 6379),
-                      get_value(database, Opts),
-                      get_value(password, Opts),
-                      no_reconnect).
-
+    case eredis:start_link(
+                    Host,
+                    get_value(port, Opts, 6379),
+                    get_value(database, Opts),
+                    get_value(password, Opts),
+                    no_reconnect
+                ) of
+            {ok, Pid} -> {ok, Pid};
+            {error, Reason = {connection_error, _}} ->
+                ?LOG(error, "[Redis] Can't connect to Redis server: Connection refused."),
+                {error, Reason};
+            {error, Reason = {authentication_error, _}} ->
+                ?LOG(error, "[Redis] Can't connect to Redis server: Authentication failed."),
+                {error, Reason};
+            {error, Reason} ->
+                ?LOG(error, "[Redis] Can't connect to Redis server: ~p", [Reason]),
+                {error, Reason}
+    end.
 
 %% Redis Query.
 -spec(q(string(), emqx_types:credentials(), timeout())
