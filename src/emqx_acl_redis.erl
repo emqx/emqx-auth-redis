@@ -23,7 +23,6 @@
 
 -export([ register_metrics/0
         , check_acl/5
-        , reload_acl/1
         , description/0
         ]).
 
@@ -82,8 +81,6 @@ feed_var(Str, Var, Val) ->
     re:replace(Str, Var, Val, [global, {return, binary}]).
 
 b2i(Bin) -> list_to_integer(binary_to_list(Bin)).
-
-reload_acl(_State) -> ok.
 
 description() -> "Redis ACL Module".
 
