@@ -38,6 +38,8 @@ check(ClientInfo = #{password := Password}, AuthResult,
     CheckPass = case emqx_auth_redis_cli:q(AuthCmd, ClientInfo, Timeout) of
                     {ok, PassHash} when is_binary(PassHash) ->
                         check_pass({PassHash, Password}, HashType);
+                    {ok, undefined} ->
+                        {error, not_found};
                     {ok, [undefined|_]} ->
                         {error, not_found};
                     {ok, [PassHash]} ->
