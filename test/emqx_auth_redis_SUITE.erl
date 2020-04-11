@@ -116,6 +116,7 @@ check_auth_hget(_Config) ->
     {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Hset#{password => <<"hset">>}).
 
 check_acl(_Config) ->
+    emqx_modules:load_module(emqx_mod_acl_internal, false),
     {ok, Connection} = ?POOL(?APP),
     Result = [eredis:q(Connection, ["HSET", Key, Filed, Value]) || {Key, Filed, Value} <- ?INIT_ACL],
     ct:pal("redis init result: ~p~n", [Result]),
