@@ -33,6 +33,7 @@
                    {"mqtt_acl:test3", "topic3", "3"}]).
 
 -define(INIT_AUTH, [{"mqtt_user:plain", ["password", "plain", "salt", "salt", "is_superuser", "1"]},
+                    {"mqtt_user:special&symbol", ["password", "plain", "salt", "salt", "is_superuser", "0"]},
                     {"mqtt_user:md5", ["password", "1bc29b36f623ba82aaf6724fd3b16718", "salt", "salt", "is_superuser", "0"]},
                     {"mqtt_user:sha", ["password", "d8f4590320e1343a915b6394170650a8f35d6926", "salt", "salt", "is_superuser", "0"]},
                     {"mqtt_user:sha256", ["password", "5d5b09f6dcb2d53a5fffc60c4ac0d55fabdf556069d6631545f42aa6e3500f2e", "salt", "salt", "is_superuser", "0"]},
@@ -80,6 +81,7 @@ check_auth(_Config) ->
     {ok, Connection} = ?POOL(?APP),
     [eredis:q(Connection, ["HMSET", Key|FiledValue]) || {Key, FiledValue} <- ?INIT_AUTH],
     Plain = #{clientid => <<"client1">>, username => <<"plain">>, zone => external},
+    SpecialSymbol = #{clientid => <<"special_symbol">>, username => <<"special&symbol">>, zone => external},
     Md5 = #{clientid => <<"md5">>, username => <<"md5">>, zone => external},
     Sha = #{clientid => <<"sha">>, username => <<"sha">>, zone => external},
     Sha256 = #{clientid => <<"sha256">>, username => <<"sha256">>, zone => external},
@@ -91,6 +93,7 @@ check_auth(_Config) ->
     {error, _} = emqx_access_control:authenticate(User3#{password => <<>>}),
     reload([{password_hash, plain}]),
     {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Plain#{password => <<"plain">>}),
+    {ok, #{is_superuser := false}} = emqx_access_control:authenticate(SpecialSymbol#{password => <<"plain">>}),
     reload([{password_hash, md5}]),
     {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Md5#{password => <<"md5">>}),
     reload([{password_hash, sha}]),
