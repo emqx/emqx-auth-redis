@@ -84,5 +84,6 @@ replvar(Cmd, _) ->
 repl(S, _Var, undefined) ->
     S;
 repl(S, Var, Val) ->
-    re:replace(S, Var, Val, [{return, list}]).
+    NVal = re:replace(Val, "&", "\\\\&", [global, {return, list}]),
+    re:replace(S, Var, NVal, [{return, list}]).
 
