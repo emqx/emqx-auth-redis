@@ -12,8 +12,11 @@ services:
     tty: true
 
   redis_server:
-    build: ./emqx-redis
-    image: emqx-redis:5
+    build:
+        context: ./emqx-redis
+        args:
+            BUILD_FROM: ${REDIS_IMAGE}
+    image: emqx-redis
     restart: always
     networks:
       - emqx-bridge
