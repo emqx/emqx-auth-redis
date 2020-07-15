@@ -9,8 +9,8 @@ jobs:
         strategy:
            matrix:
                redis_image:
-                   - reids:5
-                   - reids:6
+                   - redis:5
+                   - redis:6
       
         steps:
             - name: install docker-compose
