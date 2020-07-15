@@ -20,7 +20,7 @@ jobs:
             - uses: actions/checkout@v1
             - name: run test cases
               env:
-                  REIDS_IMAGE: ${{ matrix.redis_image }}
+                  REDIS_IMAGE: ${{ matrix.redis_image }}
               run: |
                 docker-compose -f ./.ci/docker-compose.yml -p tests up -d --build
                 docker exec -i $(docker ps -a -f name=tests_erlang_1 -q) sh -c "sed -i '/auth.redis.server/c auth.redis.server = redis_server:6379' ./emqx_auth_redis/etc/emqx_auth_redis.conf"
