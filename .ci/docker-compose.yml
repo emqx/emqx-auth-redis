@@ -15,7 +15,7 @@ services:
     build:
         context: ./emqx-redis
         args:
-            BUILD_FROM: ${REDIS_IMAGE}
+            BUILD_FROM: redis:${REDIS_TAG}
     image: emqx-redis
     restart: always
     networks:
