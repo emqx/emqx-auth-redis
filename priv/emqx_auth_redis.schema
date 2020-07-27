@@ -35,7 +35,7 @@
 
 {translation, "emqx_auth_redis.server", fun(Conf) ->
   Fun = fun(S) ->
-    case string:tokens(S, ":") of
+    case string:split(S, ":", trailing) of
       [Domain]       -> {Domain, 6379};
       [Domain, Port] -> {Domain, list_to_integer(Port)}
     end

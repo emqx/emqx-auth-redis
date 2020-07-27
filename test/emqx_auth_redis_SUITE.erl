@@ -41,30 +41,21 @@
                     {"mqtt_user:bcrypt_foo", ["password", "$2a$12$sSS8Eg.ovVzaHzi1nUHYK.HbUIOdlQI0iS22Q5rd5z.JVVYH6sfm6", "salt", "$2a$12$sSS8Eg.ovVzaHzi1nUHYK.", "is_superuser", "0"]},
                     {"mqtt_user:bcrypt", ["password", "$2y$16$rEVsDarhgHYB0TGnDFJzyu5f.T.Ha9iXMTk9J36NCMWWM7O16qyaK", "salt", "salt", "is_superuser", "0"]}]).
 
+%%--------------------------------------------------------------------
+%% Setups
+%%--------------------------------------------------------------------
+
 all() ->
-    [{group, emqx_auth_redis_auth},
-     {group, emqx_auth_redis_acl}
-     %{group, auth_redis_config}
-    ].
+    emqx_ct:all(?MODULE).
 
-groups() ->
-    [{emqx_auth_redis_auth, [sequence], [check_auth, check_auth_hget]},
-     {emqx_auth_redis_acl, [sequence], [check_acl, acl_super]},
-     {auth_redis_config, [sequence], [server_config]}
-     ].
+init_per_suite(Cfg) ->
+    emqx_ct_helpers:start_apps([emqx_auth_redis], fun set_special_configs/1),
+    init_redis_rows(),
+    Cfg.
 
-init_per_suite(Config) ->
-    emqx_ct_helpers:start_apps([emqx, emqx_auth_redis], fun set_special_configs/1),
-    Config.
-
-end_per_suite(_Config) ->
-    {ok, Connection} = ?POOL(?APP),
-    AuthKeys = [Key || {Key, _Filed, _Value} <- ?INIT_AUTH],
-    AclKeys = [Key || {Key, _Value} <- ?INIT_ACL],
-    eredis:q(Connection, ["DEL" | AuthKeys]),
-    eredis:q(Connection, ["DEL" | AclKeys]),
-    application:stop(emqx_auth_redis),
-    application:stop(ecpool).
+end_per_suite(_Cfg) ->
+    deinit_redis_rows(),
+    emqx_ct_helpers:stop_apps([emqx_auth_redis]).
 
 set_special_configs(emqx) ->
     application:set_env(emqx, allow_anonymous, false),
@@ -77,9 +68,28 @@ set_special_configs(emqx) ->
 set_special_configs(_App) ->
     ok.
 
-check_auth(_Config) ->
+init_redis_rows() ->
     {ok, Connection} = ?POOL(?APP),
+    %% Users
     [eredis:q(Connection, ["HMSET", Key|FiledValue]) || {Key, FiledValue} <- ?INIT_AUTH],
+
+    %% ACLs
+    emqx_modules:load_module(emqx_mod_acl_internal, false),
+    Result = [eredis:q(Connection, ["HSET", Key, Filed, Value]) || {Key, Filed, Value} <- ?INIT_ACL],
+    ct:pal("redis init result: ~p~n", [Result]).
+
+deinit_redis_rows() ->
+    {ok, Connection} = ?POOL(?APP),
+    AuthKeys = [Key || {Key, _Filed, _Value} <- ?INIT_AUTH],
+    AclKeys = [Key || {Key, _Value} <- ?INIT_ACL],
+    eredis:q(Connection, ["DEL" | AuthKeys]),
+    eredis:q(Connection, ["DEL" | AclKeys]).
+
+%%--------------------------------------------------------------------
+%% Cases
+%%--------------------------------------------------------------------
+
+t_check_auth(_) ->
     Plain = #{clientid => <<"client1">>, username => <<"plain">>, zone => external},
     SpecialSymbol = #{clientid => <<"special_symbol">>, username => <<"special&symbol">>, zone => external},
     Md5 = #{clientid => <<"md5">>, username => <<"md5">>, zone => external},
@@ -110,7 +120,7 @@ check_auth(_Config) ->
     {error,_} = emqx_access_control:authenticate(User1#{password => <<"foo">>}),
     {error, _} = emqx_access_control:authenticate(Bcrypt#{password => <<"password">>}).
 
-check_auth_hget(_Config) ->
+t_check_auth_hget(_) ->
     {ok, Connection} = ?POOL(?APP),
     eredis:q(Connection, ["HSET", "mqtt_user:hset", "password", "hset"]),
     eredis:q(Connection, ["HSET", "mqtt_user:hset", "is_superuser", "1"]),
@@ -118,11 +128,7 @@ check_auth_hget(_Config) ->
     Hset = #{clientid => <<"hset">>, username => <<"hset">>, zone => external},
     {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Hset#{password => <<"hset">>}).
 
-check_acl(_Config) ->
-    emqx_modules:load_module(emqx_mod_acl_internal, false),
-    {ok, Connection} = ?POOL(?APP),
-    Result = [eredis:q(Connection, ["HSET", Key, Filed, Value]) || {Key, Filed, Value} <- ?INIT_ACL],
-    ct:pal("redis init result: ~p~n", [Result]),
+t_check_acl(_) ->
     User1 = #{zone => external, clientid => <<"client1">>, username => <<"test1">>},
     User2 = #{zone => external, clientid => <<"client2">>, username => <<"test2">>},
     User3 = #{zone => external, clientid => <<"client3">>, username => <<"test3">>},
@@ -136,7 +142,7 @@ check_acl(_Config) ->
     allow = emqx_access_control:check_acl(User3, subscribe, <<"topic3">>),
     allow = emqx_access_control:check_acl(User4, publish, <<"a/b/c">>).
 
-acl_super(_Config) ->
+t_acl_super(_) ->
     reload([{password_hash, plain}]),
     {ok, C} = emqtt:start_link([{host,      "localhost"},
                                 {clientid, <<"simpleClient">>},
@@ -149,7 +155,6 @@ acl_super(_Config) ->
     emqtt:publish(C, <<"TopicA">>, <<"Payload">>, qos2),
     timer:sleep(1000),
     receive
-        %% TODO: 3.0 ???
         {publish, #{payload := Payload}} ->
         ?assertEqual(<<"Payload">>, Payload)
     after
@@ -159,27 +164,9 @@ acl_super(_Config) ->
     end,
     emqtt:disconnect(C).
 
-server_config(_) ->
-    I = [{host, "localhost"},
-         {pool_size, 1},
-         {port, 6377},
-         {auto_reconnect, 1},
-         {password, "public"},
-         {database, 1}
-       ],
-    SetConfigKeys = ["server=localhost:6377",
-                     "pool=1",
-                     "password=public",
-                     "database=1",
-                     "password_hash=salt,sha256"],
-    lists:foreach(fun set_cmd/1, SetConfigKeys),
-    {ok, E} =  application:get_env(emqx_auth_redis, server),
-    {ok, Hash} =  application:get_env(emqx_auth_redis, password_hash),
-    ?assertEqual(lists:sort(I), lists:sort(E)),
-    ?assertEqual({salt, sha256}, Hash).
-
-set_cmd(Key) ->
-    emqx_cli_config:run(["config", "set", string:join(["auth.redis", Key], "."), "--app=emqx_auth_redis"]).
+%%--------------------------------------------------------------------
+%% Internal funcs
+%%--------------------------------------------------------------------
 
 reload(Config) when is_list(Config) ->
     application:stop(?APP),

@@ -6,7 +6,7 @@ services:
     volumes:
       - ../:/emqx_auth_redis    
     networks:
-      - emqx-bridge
+      - emqx_bridge
     depends_on:
       - redis_server
     tty: true
@@ -15,12 +15,12 @@ services:
     build:
         context: ./emqx-redis
         args:
-            BUILD_FROM: ${REDIS_IMAGE}
+            BUILD_FROM: redis:${REDIS_TAG}
     image: emqx-redis
     restart: always
     networks:
-      - emqx-bridge
+      - emqx_bridge
 
 networks:
-  emqx-bridge:
+  emqx_bridge:
     driver: bridge
