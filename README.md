@@ -3,6 +3,16 @@ emqx_auth_redis
 
 EMQ X Redis Authentication/ACL Plugin
 
+Features
+---------
+
+- Full *Authentication*, *Superuser*, *ACL* support
+- IPv4, IPv6 support
+- Connection pool by [ecpool](https://github.com/emqx/ecpool)
+- Support `single`, `sentinel`, `cluster` deployment structures of Redis
+- Completely cover Redis 5, Redis 6 in our tests
+
+
 Build Plugin
 ------------
 
@@ -48,6 +58,8 @@ auth.redis.database = 0
 ## Variables:
 ##  - %u: username
 ##  - %c: clientid
+##  - %C: common name of client TLS cert
+##  - %d: subject of client TLS cert
 ##
 ## Examples:
 ##  - HGET mqtt_user:%u password
@@ -80,6 +92,8 @@ auth.redis.password_hash = plain
 ## Variables:
 ##  - %u: username
 ##  - %c: clientid
+##  - %C: common name of client TLS cert
+##  - %d: subject of client TLS cert
 auth.redis.super_cmd = HGET mqtt_user:%u is_superuser
 
 ## ACL query command.
