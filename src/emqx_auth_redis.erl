@@ -34,8 +34,10 @@ check(ClientInfo = #{password := Password}, AuthResult,
       #{auth_cmd  := AuthCmd,
         super_cmd := SuperCmd,
         hash_type := HashType,
-        timeout   := Timeout}) ->
-    CheckPass = case emqx_auth_redis_cli:q(AuthCmd, ClientInfo, Timeout) of
+        timeout   := Timeout,
+        type      := Type,
+        pool      := Pool}) ->
+    CheckPass = case emqx_auth_redis_cli:q(Pool, Type, AuthCmd, ClientInfo, Timeout) of
                     {ok, PassHash} when is_binary(PassHash) ->
                         check_pass({PassHash, Password}, HashType);
                     {ok, [undefined|_]} ->
@@ -51,7 +53,7 @@ check(ClientInfo = #{password := Password}, AuthResult,
     case CheckPass of
         ok ->
             ok = emqx_metrics:inc(?AUTH_METRICS(success)),
-            IsSuperuser = is_superuser(SuperCmd, ClientInfo, Timeout),
+            IsSuperuser = is_superuser(Pool, Type, SuperCmd, ClientInfo, Timeout),
             {stop, AuthResult#{is_superuser => IsSuperuser,
                                anonymous    => false,
                                auth_result  => success}};
@@ -65,10 +67,10 @@ check(ClientInfo = #{password := Password}, AuthResult,
 
 description() -> "Authentication with Redis".
 
--spec(is_superuser(undefined|list(), emqx_types:client(), timeout()) -> boolean()).
-is_superuser(undefined, _ClientInfo, _Timeout) -> false;
-is_superuser(SuperCmd, ClientInfo, Timeout) ->
-    case emqx_auth_redis_cli:q(SuperCmd, ClientInfo, Timeout) of
+-spec(is_superuser(atom(), atom(), undefined|list(), emqx_types:client(), timeout()) -> boolean()).
+is_superuser(_Pool, _Type, undefined, _ClientInfo, _Timeout) -> false;
+is_superuser(Pool, Type, SuperCmd, ClientInfo, Timeout) ->
+    case emqx_auth_redis_cli:q(Pool, Type, SuperCmd, ClientInfo, Timeout) of
         {ok, undefined} -> false;
         {ok, <<"1">>}   -> true;
         {ok, _Other}    -> false;

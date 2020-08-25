@@ -26,7 +26,7 @@
 -import(proplists, [get_value/2, get_value/3]).
 
 -export([ connect/1
-        , q/3
+        , q/5
         ]).
 
 %%--------------------------------------------------------------------
@@ -61,13 +61,13 @@ connect(Opts) ->
     end.
 
 %% Redis Query.
--spec(q(string(), emqx_types:credentials(), timeout())
+-spec(q(atom(), atom(), string(), emqx_types:credentials(), timeout())
       -> {ok, undefined | binary() | list()} | {error, atom() | binary()}).
-q(CmdStr, Credentials, Timeout) ->
+q(Pool, Type, CmdStr, Credentials, Timeout) ->
     Cmd = string:tokens(replvar(CmdStr, Credentials), " "),
-    case get_value(type, application:get_env(?APP, server, [])) of
-        cluster -> eredis_cluster:q(?APP, Cmd);
-        _ -> ecpool:with_client(?APP, fun(C) -> eredis:q(C, Cmd, Timeout) end)
+    case Type of
+        cluster -> eredis_cluster:q(Pool, Cmd);
+        _ -> ecpool:with_client(Pool, fun(C) -> eredis:q(C, Cmd, Timeout) end)
     end.
 
 replvar(Cmd, Credentials = #{cn := CN}) ->
