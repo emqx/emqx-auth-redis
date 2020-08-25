@@ -40,8 +40,8 @@ check_acl(ClientInfo, PubSub, Topic, AclResult, Config) ->
 do_check_acl(#{username := <<$$, _/binary>>}, _PubSub, _Topic, _AclResult, _Config) ->
     ok;
 do_check_acl(ClientInfo, PubSub, Topic, _AclResult,
-             #{acl_cmd := AclCmd, timeout := Timeout}) ->
-    case emqx_auth_redis_cli:q(AclCmd, ClientInfo, Timeout) of
+             #{acl_cmd := AclCmd, timeout := Timeout, type := Type, pool := Pool}) ->
+    case emqx_auth_redis_cli:q(Pool, Type, AclCmd, ClientInfo, Timeout) of
         {ok, []} -> ok;
         {ok, Rules} ->
             case match(ClientInfo, PubSub, Topic, Rules) of
