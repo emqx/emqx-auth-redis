@@ -21,3 +21,4 @@ erlang.mk
 *.conf.rendered
 .rebar3/
 *.swp
+rebar.lock
