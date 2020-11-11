@@ -54,7 +54,7 @@
 ]}.
 
 {translation, "emqx_auth_redis.options", fun(Conf) ->
-   Ssl = cuttlefish:conf_get("auth.redis.ssl", Conf, off),
+   Ssl = cuttlefish:conf_get("auth.redis.ssl", Conf, false),
    case Ssl of
        true ->
             CA = cuttlefish:conf_get("auth.redis.cafile", Conf),
