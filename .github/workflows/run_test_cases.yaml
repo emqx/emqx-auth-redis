@@ -9,11 +9,14 @@ jobs:
         strategy:
            matrix:
                redis_tag:
-                   - 5
-                   - 6
+                   - 5.0.9
+                   - 6.0.9
                network_type:
                    - ipv4
                    - ipv6
+               connect_type:
+                   - tcp
+                   - tls
       
         steps:
             - name: install docker-compose
@@ -21,20 +24,49 @@ jobs:
                 sudo curl -L "https://github.com/docker/compose/releases/download/1.25.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
                 sudo chmod +x /usr/local/bin/docker-compose
             - uses: actions/checkout@v1
-            - name: run test cases
+            - name: setup
+              if: matrix.connect_type == 'tcp' && matrix.network_type == 'ipv6'
               env:
-                  REDIS_TAG: ${{ matrix.redis_tag}}
-                  NETWORK_TYPE: ${{ matrix.network_type }}
+                REDIS_TAG: ${{ matrix.redis_tag}}
               run: |
                 set -e -u -x
-                if [ "$NETWORK_TYPE" = "ipv6" ];then docker network create --driver bridge --ipv6 --subnet fd15:555::/64  tests_emqx_bridge --attachable; fi
-                docker-compose -f ./.ci/docker-compose.yml -p tests up -d --build
-                if [ "$NETWORK_TYPE" != "ipv6" ];then
-                    docker exec -i $(docker ps -a -f name=tests_erlang_1 -q) sh -c "sed -i '/auth.redis.server/c auth.redis.server = redis_server:6379' ./emqx_auth_redis/etc/emqx_auth_redis.conf"
-                else
-                    ipv6_address=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(docker ps -a -f name=tests_redis_server_1 -q))
-                    docker exec -i $(docker ps -a -f name=tests_erlang_1 -q) sh -c "sed -i '/auth.redis.server/c auth.redis.server = $ipv6_address:6379' /emqx_auth_redis/etc/emqx_auth_redis.conf"
-                fi
+                docker network create --driver bridge --ipv6 --subnet fd15:555::/64  tests_emqx_bridge --attachable;
+                docker-compose -f ./.ci/docker-compose.yml -p tests up -d
+                ipv6_address=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(docker ps -a -f name=tests_redis_server_1 -q))
+                sed -i "/auth.redis.server/c auth.redis.server = $ipv6_address:6379" ./etc/emqx_auth_redis.conf
+            - name: setup
+              if: matrix.connect_type == 'tcp' && matrix.network_type == 'ipv4'
+              env:
+                REDIS_TAG: ${{ matrix.redis_tag}}
+              run: |
+                set -e -u -x
+                docker-compose -f ./.ci/docker-compose.yml -p tests up -d
+                sed -i '/auth.redis.server/c auth.redis.server = redis_server:6379' ./etc/emqx_auth_redis.conf
+            - name: setup
+              if: matrix.connect_type == 'tls' && matrix.network_type == 'ipv6' && matrix.redis_tag == '6.0.9'
+              run: |
+                set -e -u -x
+                docker network create --driver bridge --ipv6 --subnet fd15:555::/64  tests_emqx_bridge --attachable;
+                docker-compose -f ./.ci/docker-compose-tls.yml -p tests up -d
+                ipv6_address=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(docker ps -a -f name=tests_redis_server_1 -q))
+                sed -i "/auth.redis.server/c auth.redis.server = $ipv6_address:6379" ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.ssl = on' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.cafile = ca.crt' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.certfile = redis.crt ' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.keyfile = redis.key' >> ./etc/emqx_auth_redis.conf
+            - name: setup
+              if: matrix.connect_type == 'tls' && matrix.network_type == 'ipv4' && matrix.redis_tag == '6.0.9'
+              run: |
+                set -e -u -x
+                docker-compose -f ./.ci/docker-compose-tls.yml -p tests up -d
+                sed -i '/auth.redis.server/c auth.redis.server = redis_server:6379' ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.ssl = on' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.cafile = ca.crt' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.certfile = redis.crt ' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.keyfile = redis.key' >> ./etc/emqx_auth_redis.conf
+            - name: run test cases
+              if: matrix.connect_type != 'tls' && matrix.redis_tag != '5.0.9'
+              run: |
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_redis xref"
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_redis eunit"
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_redis ct"
@@ -42,6 +74,6 @@ jobs:
             - uses: actions/upload-artifact@v1
               if: failure()
               with:
-                name: logs_redis${{ matrix.redis_tag}}_${{ matrix.network_type }}
+                name: logs_redis${{ matrix.redis_tag}}_${{ matrix.network_type }}_${{ matrix.connect_type }}
                 path: _build/test/logs
 
