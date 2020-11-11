@@ -12,11 +12,10 @@ services:
     tty: true
 
   redis_server:
-    build:
-        context: ./emqx-redis
-        args:
-            BUILD_FROM: redis:${REDIS_TAG}
-    image: emqx-redis
+    image: redis:${REDIS_TAG}
+    command:
+        - redis-server
+        - --bind 0.0.0.0
     restart: always
     networks:
       - emqx_bridge
