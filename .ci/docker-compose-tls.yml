@@ -4,7 +4,7 @@ services:
   erlang:
     image: erlang:22.3
     volumes:
-      - ../:/emqx_auth_redis    
+      - ../:/emqx_auth_redis
     networks:
       - emqx_bridge
     depends_on:
@@ -12,13 +12,12 @@ services:
     tty: true
 
   redis_server:
-    image: redis:6.0.9 
+    image: redis:6.0.9
     volumes:
-      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
       - ../test/emqx_auth_redis_SUITE_data/certs:/tls
     command:
       - redis-server
-      - /usr/local/etc/redis/redis.conf
+      - "--bind 0.0.0.0 ::"
       - --tls-port 6380
       - --tls-cert-file /tls/redis.crt
       - --tls-key-file /tls/redis.key
