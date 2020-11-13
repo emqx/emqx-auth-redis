@@ -74,7 +74,6 @@ init_redis_rows() ->
     [eredis:q(Connection, ["HMSET", Key|FiledValue]) || {Key, FiledValue} <- ?INIT_AUTH],
 
     %% ACLs
-    emqx_modules:load_module(emqx_mod_acl_internal, false),
     Result = [eredis:q(Connection, ["HSET", Key, Filed, Value]) || {Key, Filed, Value} <- ?INIT_ACL],
     ct:pal("redis init result: ~p~n", [Result]).
 
@@ -140,7 +139,7 @@ t_check_acl(_) ->
     allow = emqx_access_control:check_acl(User2, subscribe, <<"topic2">>),
     allow = emqx_access_control:check_acl(User3, publish, <<"topic3">>),
     allow = emqx_access_control:check_acl(User3, subscribe, <<"topic3">>),
-    allow = emqx_access_control:check_acl(User4, publish, <<"a/b/c">>).
+    deny  = emqx_access_control:check_acl(User4, publish, <<"a/b/c">>).
 
 t_acl_super(_) ->
     reload([{password_hash, plain}]),
