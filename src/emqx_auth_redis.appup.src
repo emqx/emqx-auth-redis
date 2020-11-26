@@ -6,7 +6,6 @@
      {<<".*">>, []}
    ],
    [
-     },
      {"4.2.0", [{load_module, emqx_auth_redis_cli, brutal_purge, soft_purge, []},
                 {load_module, emqx_auth_redis_sup, brutal_purge, soft_purge, []}]
      },
