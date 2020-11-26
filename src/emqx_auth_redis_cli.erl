@@ -61,23 +61,23 @@ connect(Opts) ->
     end.
 
 %% Redis Query.
--spec(q(atom(), atom(), string(), emqx_types:credentials(), timeout())
-      -> {ok, undefined | binary() | list()} | {error, atom() | binary()}).
-q(Pool, Type, CmdStr, Credentials, Timeout) ->
-    Cmd = string:tokens(replvar(CmdStr, Credentials), " "),
+-spec(q(atom(), atom(), string(), emqx_types:clientinfo(), timeout())
+      -> {ok, undefined | binary()| list()} | {error, atom() | binary()}).
+q(Pool, Type, CmdStr, ClientInfo, Timeout) ->
+    Cmd = string:tokens(replvar(CmdStr, ClientInfo), " "),
     case Type of
         cluster -> eredis_cluster:q(Pool, Cmd);
         _ -> ecpool:with_client(Pool, fun(C) -> eredis:q(C, Cmd, Timeout) end)
     end.
 
-replvar(Cmd, Credentials = #{cn := CN}) ->
-    replvar(repl(Cmd, "%C", CN), maps:remove(cn, Credentials));
-replvar(Cmd, Credentials = #{dn := DN}) ->
-    replvar(repl(Cmd, "%d", DN), maps:remove(dn, Credentials));
-replvar(Cmd, Credentials = #{clientid := ClientId}) ->
-    replvar(repl(Cmd, "%c", ClientId), maps:remove(clientid, Credentials));
-replvar(Cmd, Credentials = #{username := Username}) ->
-    replvar(repl(Cmd, "%u", Username), maps:remove(username, Credentials));
+replvar(Cmd, ClientInfo = #{cn := CN}) ->
+    replvar(repl(Cmd, "%C", CN), maps:remove(cn, ClientInfo));
+replvar(Cmd, ClientInfo = #{dn := DN}) ->
+    replvar(repl(Cmd, "%d", DN), maps:remove(dn, ClientInfo));
+replvar(Cmd, ClientInfo = #{clientid := ClientId}) ->
+    replvar(repl(Cmd, "%c", ClientId), maps:remove(clientid, ClientInfo));
+replvar(Cmd, ClientInfo = #{username := Username}) ->
+    replvar(repl(Cmd, "%u", Username), maps:remove(username, ClientInfo));
 replvar(Cmd, _) ->
     Cmd.
 
