@@ -1,5 +1,16 @@
 #!/bin/bash
 
+tls=false;
+while getopts t OPT
+do
+    case $OPT in
+        t)  tls=true
+            ;;
+        \?) exit
+            ;;
+    esac
+done
+
 rm -f \
     /data/conf/r7000i.log \
     /data/conf/r7001i.log \
@@ -8,9 +19,27 @@ rm -f \
     /data/conf/nodes.7001.conf \
     /data/conf/nodes.7002.conf ;
 
-redis-server /data/conf/redis.conf --port 7000 --cluster-config-file /data/conf/nodes.7000.conf --daemonize yes ;
-redis-server /data/conf/redis.conf --port 7001 --cluster-config-file /data/conf/nodes.7001.conf --daemonize yes ;
-redis-server /data/conf/redis.conf --port 7002 --cluster-config-file /data/conf/nodes.7002.conf --daemonize yes ;
+if  $tls ; then
+  redis-server /data/conf/redis.conf --port 7000 --cluster-config-file /data/conf/nodes.7000.conf --daemonize yes \
+                                     --tls-port 8000 \
+                                     --tls-cert-file /tls/redis.crt \
+                                     --tls-key-file /tls/redis.key \
+                                     --tls-ca-cert-file /tls/ca.crt
+  redis-server /data/conf/redis.conf --port 7001 --cluster-config-file /data/conf/nodes.7001.conf --daemonize yes \
+                                     --tls-port 8001 \
+                                     --tls-cert-file /tls/redis.crt \
+                                     --tls-key-file /tls/redis.key \
+                                     --tls-ca-cert-file /tls/ca.crt
+  redis-server /data/conf/redis.conf --port 7002 --cluster-config-file /data/conf/nodes.7002.conf --daemonize yes \
+                                     --tls-port 8002 \
+                                     --tls-cert-file /tls/redis.crt \
+                                     --tls-key-file /tls/redis.key \
+                                     --tls-ca-cert-file /tls/ca.crt
+else
+  redis-server /data/conf/redis.conf --port 7000 --cluster-config-file /data/conf/nodes.7000.conf --daemonize yes ;
+  redis-server /data/conf/redis.conf --port 7001 --cluster-config-file /data/conf/nodes.7001.conf --daemonize yes ;
+  redis-server /data/conf/redis.conf --port 7002 --cluster-config-file /data/conf/nodes.7002.conf --daemonize yes ;
+fi
 
 REDIS_LOAD_FLG=true;
 
