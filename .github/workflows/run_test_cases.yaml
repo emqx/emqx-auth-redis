@@ -87,8 +87,32 @@ jobs:
                 docker-compose -f ./.ci/docker-compose-cluster.yml -p tests up -d
                 sed -i '/auth.redis.type/c auth.redis.type = cluster' ./etc/emqx_auth_redis.conf
                 sed -i '/auth.redis.server/c auth.redis.server = 2001:3200:3200::20:7000,2001:3200:3200::20:7001,2001:3200:3200::20:7002' ./etc/emqx_auth_redis.conf
+            - name: setup
+              if: matrix.connect_type == 'tls' && matrix.network_type == 'ipv4' && matrix.redis_tag == '6.0.9' && matrix.node_type == 'cluster'
+              run: |
+                set -e -u -x
+                docker-compose -f ./.ci/docker-compose-cluster-tls.yml -p tests up -d
+                sed -i '/auth.redis.type/c auth.redis.type = cluster' ./etc/emqx_auth_redis.conf
+                sed -i '/auth.redis.server/c auth.redis.server = 172.16.239.10:8000,172.16.239.10:8001,172.16.239.10:8002' ./etc/emqx_auth_redis.conf
+                echo '\n' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.ssl = on' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.cafile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/ca.crt' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.certfile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/redis.crt' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.keyfile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/redis.key' >> ./etc/emqx_auth_redis.conf
+            - name: setup
+              if: matrix.connect_type == 'tls' && matrix.network_type == 'ipv6' && matrix.redis_tag == '6.0.9' && matrix.node_type == 'cluster'
+              run: |
+                set -e -u -x
+                docker-compose -f ./.ci/docker-compose-cluster-tls.yml -p tests up -d
+                sed -i '/auth.redis.type/c auth.redis.type = cluster' ./etc/emqx_auth_redis.conf
+                sed -i '/auth.redis.server/c auth.redis.server = 2001:3200:3200::20:8000,2001:3200:3200::20:8001,2001:3200:3200::20:8002' ./etc/emqx_auth_redis.conf
+                echo '\n' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.ssl = on' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.cafile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/ca.crt' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.certfile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/redis.crt' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.keyfile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/redis.key' >> ./etc/emqx_auth_redis.conf
             - name: run test cases
-              if: matrix.connect_type == 'tcp' || (matrix.connect_type == 'tls' &&  matrix.redis_tag == '6.0.9' && matrix.node_type == 'single')
+              if: matrix.connect_type == 'tcp' || (matrix.connect_type == 'tls' &&  matrix.redis_tag == '6.0.9')
               run: |
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_redis xref"
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_redis eunit"
