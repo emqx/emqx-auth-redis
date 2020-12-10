@@ -160,6 +160,16 @@ t_acl_super(_) ->
     end,
     emqtt:disconnect(C).
 
+t_check_cluster_connection(_) ->
+    ?assertMatch({error, _Reason}, reload([{server, [{type,cluster},
+                                           {pool_size,8},
+                                           {auto_reconnect,1},
+                                           {database,0},
+                                           {password,[]},
+                                           {sentinel,[]},
+                                           {servers,[{"wrong",6379},{"wrong",6380},{"wrong",6381}]}]}])).
+
+
 %%--------------------------------------------------------------------
 %% Internal funcs
 %%--------------------------------------------------------------------
