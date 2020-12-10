@@ -69,38 +69,18 @@ set_special_configs(_App) ->
     ok.
 
 init_redis_rows() ->
-    % {ok, Connection} = ?POOL(?APP),
     %% Users
-    % [eredis:q(Connection, ["HMSET", Key|FiledValue]) || {Key, FiledValue} <- ?INIT_AUTH],
-    {ok, Server} = application:get_env(?APP, server),
-    Result = case proplists:get_value(type, Server) of
-        single ->
-            {ok, Connection} = ?POOL(?APP),
-            [eredis:q(Connection, ["HMSET", Key|FiledValue]) || {Key, FiledValue} <- ?INIT_AUTH],
-            %% ACLs
-            emqx_modules:load_module(emqx_mod_acl_internal, false),
-            [eredis:q(Connection, ["HSET", Key, Filed, Value]) || {Key, Filed, Value} <- ?INIT_ACL];
-        cluster ->
-            [eredis_cluster:q(emqx_auth_redis, ["HMSET", Key|FiledValue]) || {Key, FiledValue} <- ?INIT_AUTH],
-            %% ACLs
-            emqx_modules:load_module(emqx_mod_acl_internal, false),
-            [eredis_cluster:q(emqx_auth_redis, ["HSET", Key, Filed, Value]) || {Key, Filed, Value} <- ?INIT_ACL]
-    end,
+    [q(["HMSET", Key|FiledValue]) || {Key, FiledValue} <- ?INIT_AUTH],
+    %% ACLs
+    emqx_modules:load_module(emqx_mod_acl_internal, false),
+    Result = [q(["HSET", Key, Filed, Value]) || {Key, Filed, Value} <- ?INIT_ACL],
     ct:pal("redis init result: ~p~n", [Result]).
 
 deinit_redis_rows() ->
     AuthKeys = [Key || {Key, _Filed, _Value} <- ?INIT_AUTH],
     AclKeys = [Key || {Key, _Value} <- ?INIT_ACL],
-    {ok, Server} = application:get_env(?APP, server),
-    case proplists:get_value(type, Server) of
-        single ->
-            {ok, Connection} = ?POOL(?APP),
-            eredis:q(Connection, ["DEL" | AuthKeys]),
-            eredis:q(Connection, ["DEL" | AclKeys]);
-        cluster ->
-            eredis_cluster:q(emqx_auth_redis, ["DEL" | AuthKeys]),
-            eredis_cluster:q(emqx_auth_redis, ["DEL" | AclKeys])
-    end.
+    q(["DEL" | AuthKeys]),
+    q(["DEL" | AclKeys]).
 
 %%--------------------------------------------------------------------
 %% Cases
@@ -138,16 +118,8 @@ t_check_auth(_) ->
     {error, _} = emqx_access_control:authenticate(Bcrypt#{password => <<"password">>}).
 
 t_check_auth_hget(_) ->
-    {ok, Server} = application:get_env(?APP, server),
-    case proplists:get_value(type, Server) of
-        single ->
-            {ok, Connection} = ?POOL(?APP),
-            eredis:q(Connection, ["HSET", "mqtt_user:hset", "password", "hset"]),
-            eredis:q(Connection, ["HSET", "mqtt_user:hset", "is_superuser", "1"]);
-        cluster ->
-            eredis_cluster:q(emqx_auth_redis, ["HSET", "mqtt_user:hset", "password", "hset"]),
-            eredis_cluster:q(emqx_auth_redis, ["HSET", "mqtt_user:hset", "is_superuser", "1"])
-    end,
+    q(["HSET", "mqtt_user:hset", "password", "hset"]),
+    q(["HSET", "mqtt_user:hset", "is_superuser", "1"]),
     reload([{password_hash, plain}, {auth_cmd, "HGET mqtt_user:%u password"}]),
     Hset = #{clientid => <<"hset">>, username => <<"hset">>, zone => external},
     {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Hset#{password => <<"hset">>}).
@@ -196,3 +168,13 @@ reload(Config) when is_list(Config) ->
     application:stop(?APP),
     [application:set_env(?APP, K, V) || {K, V} <- Config],
     application:start(?APP).
+
+q(Cmd) ->
+    {ok, Server} = application:get_env(?APP, server),
+    case proplists:get_value(type, Server) of
+        single ->
+            {ok, Connection} = ?POOL(?APP),
+            eredis:q(Connection, Cmd);
+        cluster ->
+            eredis_cluster:q(emqx_auth_redis, Cmd)
+    end.
