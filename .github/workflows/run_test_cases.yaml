@@ -17,6 +17,9 @@ jobs:
                connect_type:
                    - tcp
                    - tls
+               node_type:
+                   - single
+                   - cluster
 
         steps:
             - name: install docker-compose
@@ -25,7 +28,7 @@ jobs:
                 sudo chmod +x /usr/local/bin/docker-compose
             - uses: actions/checkout@v1
             - name: setup
-              if: matrix.connect_type == 'tcp' && matrix.network_type == 'ipv6'
+              if: matrix.connect_type == 'tcp' && matrix.network_type == 'ipv6' && matrix.node_type == 'single'
               env:
                 REDIS_TAG: ${{ matrix.redis_tag}}
               run: |
@@ -35,7 +38,7 @@ jobs:
                 ipv6_address=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(docker ps -a -f name=tests_redis_server_1 -q))
                 sed -i "/auth.redis.server/c auth.redis.server = $ipv6_address:6379" ./etc/emqx_auth_redis.conf
             - name: setup
-              if: matrix.connect_type == 'tcp' && matrix.network_type == 'ipv4'
+              if: matrix.connect_type == 'tcp' && matrix.network_type == 'ipv4' && matrix.node_type == 'single'
               env:
                 REDIS_TAG: ${{ matrix.redis_tag}}
               run: |
@@ -43,7 +46,7 @@ jobs:
                 docker-compose -f ./.ci/docker-compose.yml -p tests up -d
                 sed -i '/auth.redis.server/c auth.redis.server = redis_server:6379' ./etc/emqx_auth_redis.conf
             - name: setup
-              if: matrix.connect_type == 'tls' && matrix.network_type == 'ipv6' && matrix.redis_tag == '6.0.9'
+              if: matrix.connect_type == 'tls' && matrix.network_type == 'ipv6' && matrix.redis_tag == '6.0.9' && matrix.node_type == 'single'
               run: |
                 set -e -u -x
                 docker network create --driver bridge --ipv6 --subnet fd15:555::/64  tests_emqx_bridge --attachable;
@@ -56,7 +59,7 @@ jobs:
                 echo 'auth.redis.certfile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/redis.crt' >> ./etc/emqx_auth_redis.conf
                 echo 'auth.redis.keyfile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/redis.key' >> ./etc/emqx_auth_redis.conf
             - name: setup
-              if: matrix.connect_type == 'tls' && matrix.network_type == 'ipv4' && matrix.redis_tag == '6.0.9'
+              if: matrix.connect_type == 'tls' && matrix.network_type == 'ipv4' && matrix.redis_tag == '6.0.9' && matrix.node_type == 'single'
               run: |
                 set -e -u -x
                 docker-compose -f ./.ci/docker-compose-tls.yml -p tests up -d
@@ -66,8 +69,26 @@ jobs:
                 echo 'auth.redis.cafile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/ca.crt' >> ./etc/emqx_auth_redis.conf
                 echo 'auth.redis.certfile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/redis.crt' >> ./etc/emqx_auth_redis.conf
                 echo 'auth.redis.keyfile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/redis.key' >> ./etc/emqx_auth_redis.conf
+            - name: setup
+              if: matrix.connect_type == 'tcp' && matrix.network_type == 'ipv4' && matrix.node_type == 'cluster'
+              env:
+                REDIS_TAG: ${{ matrix.redis_tag }}
+              run: |
+                set -e -u -x
+                docker-compose -f ./.ci/docker-compose-cluster.yml -p tests up -d
+                sed -i '/auth.redis.type/c auth.redis.type = cluster' ./etc/emqx_auth_redis.conf
+                sed -i '/auth.redis.server/c auth.redis.server = 172.16.239.10:7000,172.16.239.10:7001,172.16.239.10:7002' ./etc/emqx_auth_redis.conf
+            - name: setup
+              if: matrix.connect_type == 'tcp' && matrix.network_type == 'ipv6' && matrix.node_type == 'cluster'
+              env:
+                REDIS_TAG: ${{ matrix.redis_tag }}
+              run: |
+                set -e -u -x
+                docker-compose -f ./.ci/docker-compose-cluster.yml -p tests up -d
+                sed -i '/auth.redis.type/c auth.redis.type = cluster' ./etc/emqx_auth_redis.conf
+                sed -i '/auth.redis.server/c auth.redis.server = 2001:3200:3200::20:7000,2001:3200:3200::20:7001,2001:3200:3200::20:7002' ./etc/emqx_auth_redis.conf
             - name: run test cases
-              if: matrix.connect_type == 'tcp' || (matrix.connect_type == 'tls' &&  matrix.redis_tag == '6.0.9')
+              if: matrix.connect_type == 'tcp' || (matrix.connect_type == 'tls' &&  matrix.redis_tag == '6.0.9' && matrix.node_type == 'single')
               run: |
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_redis xref"
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_redis eunit"
