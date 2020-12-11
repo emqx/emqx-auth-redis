@@ -20,6 +20,7 @@ jobs:
                node_type:
                    - single
                    - cluster
+                   - sentinel
 
         steps:
             - name: install docker-compose
@@ -111,8 +112,30 @@ jobs:
                 echo 'auth.redis.cafile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/ca.crt' >> ./etc/emqx_auth_redis.conf
                 echo 'auth.redis.certfile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/redis.crt' >> ./etc/emqx_auth_redis.conf
                 echo 'auth.redis.keyfile = /emqx_auth_redis/test/emqx_auth_redis_SUITE_data/certs/redis.key' >> ./etc/emqx_auth_redis.conf
+            - name: setup
+              if: matrix.connect_type == 'tcp' && matrix.network_type == 'ipv4' && matrix.node_type == 'sentinel'
+              env:
+                REDIS_TAG: ${{ matrix.redis_tag}}
+              run: |
+                set -e -u -x
+                docker-compose -f ./.ci/docker-compose-sentinel.yml -p tests up -d
+                sed -i '/auth.redis.type/c auth.redis.type = sentinel' ./etc/emqx_auth_redis.conf
+                sed -i '/auth.redis.server/c auth.redis.server = 172.16.239.10:26379' ./etc/emqx_auth_redis.conf
+                echo '\n' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.sentinel = mymaster' >> ./etc/emqx_auth_redis.conf
+            - name: setup
+              if: matrix.connect_type == 'tcp' && matrix.network_type == 'ipv6' && matrix.node_type == 'sentinel'
+              env:
+                REDIS_TAG: ${{ matrix.redis_tag}}
+              run: |
+                set -e -u -x
+                docker-compose -f ./.ci/docker-compose-sentinel.yml -p tests up -d
+                sed -i '/auth.redis.type/c auth.redis.type = sentinel' ./etc/emqx_auth_redis.conf
+                sed -i '/auth.redis.server/c auth.redis.server = 2001:3200:3200::20:26379' ./etc/emqx_auth_redis.conf
+                echo '\n' >> ./etc/emqx_auth_redis.conf
+                echo 'auth.redis.sentinel = mymaster' >> ./etc/emqx_auth_redis.conf
             - name: run test cases
-              if: matrix.connect_type == 'tcp' || (matrix.connect_type == 'tls' &&  matrix.redis_tag == '6.0.9')
+              if: matrix.connect_type == 'tcp' || (matrix.connect_type == 'tls' &&  matrix.redis_tag == '6.0.9' && matrix.node_type != 'sentinel')
               run: |
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_redis xref"
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_redis eunit"
