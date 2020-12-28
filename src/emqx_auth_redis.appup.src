@@ -1,4 +1,5 @@
-{"4.2.4",
+%% -*-: erlang -*-
+{VSN,
    [
      {"4.2.3", [
                     {load_module, emqx_auth_redis_sup, brutal_purge, soft_purge, []}
@@ -18,7 +19,8 @@
                     {load_module, emqx_auth_redis_cli, brutal_purge, soft_purge, []},
                     {load_module, emqx_auth_redis_sup, brutal_purge, soft_purge, []}
                ]
-     }
+     },
+     {<<".*">>, []}
    ],
    [
      {"4.2.3", [
@@ -39,6 +41,7 @@
                     {load_module, emqx_auth_redis_cli, brutal_purge, soft_purge, []},
                     {load_module, emqx_auth_redis_sup, brutal_purge, soft_purge, []}
                ]
-     }
+     },
+     {<<".*">>, []}
    ]
 }.
