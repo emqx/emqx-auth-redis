@@ -182,9 +182,9 @@ reload(Config) when is_list(Config) ->
 q(Cmd) ->
     {ok, Server} = application:get_env(?APP, server),
     case proplists:get_value(type, Server) of
-        single ->
-            {ok, Connection} = ?POOL(?APP),
-            eredis:q(Connection, Cmd);
         cluster ->
-            eredis_cluster:q(emqx_auth_redis, Cmd)
+            eredis_cluster:q(emqx_auth_redis, Cmd);
+        _ ->
+            {ok, Connection} = ?POOL(?APP),
+            eredis:q(Connection, Cmd)
     end.
